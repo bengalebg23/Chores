@@ -147,19 +147,37 @@ const DEFAULT_TASKS = [
   { id: 'gr-r-toes',     group: 'Grooming', label: 'R. Toenails',    cadence: 28 },
   { id: 'gr-r-fingers',  group: 'Grooming', label: 'R. Fingernails', cadence: 14 },
 
+  // Bathrooms — Lower
+  { id: 'ba-low-toilet', group: 'Bathrooms', label: 'Lower · Toilet',  cadence: 7  },
+  { id: 'ba-low-sink',   group: 'Bathrooms', label: 'Lower · Sink',    cadence: 7  },
+  { id: 'ba-low-floor',  group: 'Bathrooms', label: 'Lower · Floors',  cadence: 7  },
+  // Bathrooms — Middle
+  { id: 'ba-mid-toilet', group: 'Bathrooms', label: 'Middle · Toilet', cadence: 7  },
+  { id: 'ba-mid-sink',   group: 'Bathrooms', label: 'Middle · Sink',   cadence: 7  },
+  { id: 'ba-mid-floor',  group: 'Bathrooms', label: 'Middle · Floors', cadence: 7  },
+  { id: 'ba-mid-bath',   group: 'Bathrooms', label: 'Middle · Bath',   cadence: 14 },
+  // Bathrooms — Upper
+  { id: 'ba-up-toilet',  group: 'Bathrooms', label: 'Upper · Toilet',  cadence: 7  },
+  { id: 'ba-up-sink',    group: 'Bathrooms', label: 'Upper · Sink',    cadence: 7  },
+  { id: 'ba-up-floor',   group: 'Bathrooms', label: 'Upper · Floors',  cadence: 7  },
+  { id: 'ba-up-shower',  group: 'Bathrooms', label: 'Upper · Shower',  cadence: 14 },
+
   { id: 'mi-misc',       group: 'Misc', label: 'Miscellaneous', cadence: 14 },
 ];
 
-const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Grooming', 'Misc'];
+const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Bathrooms', 'Grooming', 'Misc'];
 const GROUP_META = {
   'Bed Change': { tag: '01', sub: 'sheets & linen', color: '#8b5a3c' },
   'Hoover':     { tag: '02', sub: 'floors',         color: '#5e6e44' },
   'Dusting':    { tag: '03', sub: 'surfaces',       color: '#a87a2c' },
-  'Grooming':   { tag: '04', sub: 'nails',          color: '#7d5a8a' },
-  'Misc':       { tag: '05', sub: 'other',          color: '#6b6b6b' },
+  'Bathrooms':  { tag: '04', sub: 'wet rooms',      color: '#3e7a8a' },
+  'Grooming':   { tag: '05', sub: 'nails',          color: '#7d5a8a' },
+  'Misc':       { tag: '06', sub: 'other',          color: '#6b6b6b' },
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
+const VERSION = '1.1';
+const VERSION_DATE = '2026-05-07';
 
 const todayISO = () => {
   const d = new Date();
@@ -481,6 +499,7 @@ function ChoreTracker() {
           borderTop: '1px solid #c4b596', color: '#7a5f3f',
         }}>
           Tap row to log today · 📅 for a different date · ↻ for full history
+          <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE}</div>
         </footer>
       </div>
 
