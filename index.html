@@ -176,7 +176,7 @@ const GROUP_META = {
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.2';
+const VERSION = '1.4';
 const VERSION_DATE = '2026-05-08';
 
 const todayISO = () => {
@@ -242,7 +242,13 @@ function ChoreTracker() {
       if (raw) {
         const parsed = JSON.parse(raw);
         setHistory(parsed.history || {});
-        if (parsed.tasks) setTasks(parsed.tasks);
+        if (parsed.tasks) {
+          // Merge: keep saved tasks (preserves edited cadences) but append any
+          // new defaults that didn't exist before (e.g. Bathrooms group added in v1.2)
+          const savedIds = new Set(parsed.tasks.map((t) => t.id));
+          const merged = [...parsed.tasks, ...DEFAULT_TASKS.filter((t) => !savedIds.has(t.id))];
+          setTasks(merged);
+        }
       }
     } catch (e) { /* first run */ }
     setLoading(false);
