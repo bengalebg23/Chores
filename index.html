@@ -1,543 +1,886 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#1a1a2e" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Chores" />
-  <link rel="manifest" href="manifest.json" />
-  <title>Chore Tracker</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#f4ede0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="House Ledger" />
+<title>The House Ledger</title>
 
-    :root {
-      --bg: #0f0f1a;
-      --surface: #1a1a2e;
-      --surface2: #24243e;
-      --accent: #e8c547;
-      --accent2: #ff6b6b;
-      --text: #f0ede6;
-      --muted: #7a7a9a;
-      --done-bg: #1e2e1e;
-      --done-accent: #5cb85c;
-      --radius: 16px;
-    }
+<!-- Inline favicon + icon (so no extra files needed) -->
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23f4ede0'/><text x='50%25' y='54%25' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='34' fill='%232a1f15'>HL</text></svg>" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23f4ede0'/><text x='50%25' y='58%25' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='100' fill='%232a1f15'>HL</text></svg>" />
 
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      padding: 0;
-      overflow-x: hidden;
-    }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-    /* Background texture */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(232,197,71,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255,107,107,0.06) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 120px; }
-
-    /* HEADER */
-    .header {
-      padding: 52px 24px 20px;
-      position: sticky;
-      top: 0;
-      background: linear-gradient(to bottom, var(--bg) 70%, transparent);
-      z-index: 10;
-    }
-
-    .header-top { display: flex; align-items: flex-start; justify-content: space-between; }
-
-    .title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 2.4rem;
-      line-height: 1.05;
-      letter-spacing: -0.5px;
-    }
-    .title span { color: var(--accent); font-style: italic; }
-
-    .date-pill {
-      background: var(--surface2);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 0.72rem;
-      color: var(--muted);
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      margin-top: 6px;
-    }
-
-    .progress-bar-wrap {
-      margin-top: 18px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .progress-bar-bg {
-      flex: 1;
-      height: 5px;
-      background: var(--surface2);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), #f7a440);
-      border-radius: 999px;
-      transition: width 0.5s cubic-bezier(.4,0,.2,1);
-    }
-    .progress-label { font-size: 0.75rem; color: var(--muted); min-width: 40px; text-align: right; }
-
-    /* SECTION */
-    .section-label {
-      padding: 20px 24px 8px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* CHORE CARD */
-    .chore-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
-
-    .chore-card {
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-      transition: transform 0.15s, background 0.2s, border-color 0.2s;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    .chore-card:active { transform: scale(0.975); }
-    .chore-card.done {
-      background: var(--done-bg);
-      border-color: rgba(92,184,92,0.2);
-    }
-
-    .chore-icon {
-      width: 42px; height: 42px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-      background: var(--surface2);
-      transition: background 0.2s;
-    }
-    .chore-card.done .chore-icon { background: rgba(92,184,92,0.15); }
-
-    .chore-info { flex: 1; min-width: 0; }
-    .chore-name {
-      font-size: 0.95rem;
-      font-weight: 500;
-      transition: color 0.2s;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .chore-card.done .chore-name { color: var(--muted); text-decoration: line-through; }
-    .chore-last {
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-    .chore-card.done .chore-last { color: var(--done-accent); }
-
-    .chore-check {
-      width: 26px; height: 26px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.15);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.2s, border-color 0.2s;
-      font-size: 0.85rem;
-    }
-    .chore-card.done .chore-check {
-      background: var(--done-accent);
-      border-color: var(--done-accent);
-    }
-
-    /* Delete button (long-press hint) */
-    .chore-delete {
-      display: none;
-      background: rgba(255,107,107,0.15);
-      border: none;
-      color: var(--accent2);
-      font-size: 1rem;
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      cursor: pointer;
-      align-items: center; justify-content: center;
-      flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .chore-card:hover .chore-delete,
-    .chore-card.edit-mode .chore-delete { display: flex; }
-
-    /* ADD CHORE BOTTOM BAR */
-    .add-bar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      padding: 16px;
-      background: linear-gradient(to top, var(--bg) 60%, transparent);
-      z-index: 20;
-    }
-    .add-bar-inner {
-      max-width: 480px;
-      margin: 0 auto;
-      display: flex;
-      gap: 10px;
-    }
-    .add-input {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      padding: 14px 18px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .add-input:focus { border-color: var(--accent); }
-    .add-input::placeholder { color: var(--muted); }
-
-    .add-btn {
-      width: 50px; height: 50px;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      border-radius: 14px;
-      font-size: 1.5rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform 0.15s, background 0.15s;
-      font-weight: 700;
-    }
-    .add-btn:active { transform: scale(0.92); }
-
-    /* EMPTY STATE */
-    .empty {
-      text-align: center;
-      padding: 60px 24px 0;
-      color: var(--muted);
-    }
-    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
-    .empty p { font-size: 0.9rem; line-height: 1.5; }
-
-    /* INSTALL BANNER */
-    .install-banner {
-      margin: 12px 16px 0;
-      background: linear-gradient(135deg, rgba(232,197,71,0.12), rgba(255,107,107,0.08));
-      border: 1px solid rgba(232,197,71,0.25);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 0.82rem;
-      color: var(--text);
-    }
-    .install-banner .icon { font-size: 1.4rem; }
-    .install-banner p { flex: 1; line-height: 1.4; }
-    .install-banner p strong { color: var(--accent); }
-    .install-btn {
-      background: var(--accent);
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .install-banner.hidden { display: none; }
-
-    /* TOAST */
-    .toast {
-      position: fixed;
-      bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: var(--surface2);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: var(--text);
-      padding: 10px 20px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      opacity: 0;
-      transition: opacity 0.3s, transform 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
-      z-index: 100;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* Animations */
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .chore-card { animation: slideIn 0.25s ease both; }
-
-    /* Overdue badge */
-    .overdue-badge {
-      font-size: 0.65rem;
-      background: rgba(255,107,107,0.15);
-      color: var(--accent2);
-      padding: 2px 7px;
-      border-radius: 999px;
-      margin-left: 6px;
-      font-weight: 600;
-      vertical-align: middle;
-    }
-  </style>
+<style>
+  html, body, #root {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #f4ede0;
+  }
+  body {
+    /* Honour notches when installed as PWA */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  @keyframes stamp {
+    0% { transform: scale(1) rotate(0); }
+    30% { transform: scale(1.15) rotate(-3deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .stamp-anim { animation: stamp 0.4s ease-out; }
+  .strikethrough-grow { position: relative; }
+  .strikethrough-grow::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%;
+    height: 2px; background: currentColor; transform: scaleX(0);
+    transform-origin: left; transition: transform 0.3s ease;
+  }
+  .strikethrough-grow.done::after { transform: scaleX(1); }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fadein { animation: fadein 0.2s ease-out; }
+</style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div class="header-top">
-      <h1 class="title">My <span>Chores</span></h1>
-      <div class="date-pill" id="todayDate"></div>
-    </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-      <div class="progress-label" id="progressLabel">0 / 0</div>
-    </div>
-  </div>
+<div id="root"></div>
 
-  <div id="installBanner" class="install-banner hidden">
-    <span class="icon">📲</span>
-    <p><strong>Add to home screen</strong> to use like an app!</p>
-    <button class="install-btn" id="installBtn">Install</button>
-  </div>
-
-  <div class="section-label" id="pendingLabel"></div>
-  <div class="chore-list" id="choreList"></div>
-  <div class="empty hidden" id="emptyState">
-    <div class="empty-icon">🧹</div>
-    <p>No chores yet.<br>Add one below to get started!</p>
-  </div>
-
-  <div class="section-label" id="doneLabel" style="display:none"></div>
-  <div class="chore-list" id="doneList"></div>
-</div>
-
-<div class="add-bar">
-  <div class="add-bar-inner">
-    <input class="add-input" id="addInput" type="text" placeholder="Add a new chore…" maxlength="60" />
-    <button class="add-btn" id="addBtn" title="Add chore">+</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
+<!-- Service worker registration -->
 <script>
-  // ─── STATE ───────────────────────────────────────────────────────────
-  let chores = JSON.parse(localStorage.getItem('chores') || '[]');
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        // Check for updates whenever the app is opened
+        reg.update();
 
-  const DEFAULT_CHORES = [
-    { name: 'Vacuum floors', icon: '🧹' },
-    { name: 'Do laundry', icon: '👕' },
-    { name: 'Wash dishes', icon: '🍽️' },
-    { name: 'Clean bathroom', icon: '🚿' },
-    { name: 'Take out trash', icon: '🗑️' },
-    { name: 'Mop kitchen', icon: '🪣' },
+        // If a new SW is waiting, prompt to activate it
+        if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          if (!installing) return;
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              installing.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch(() => { /* fine if it fails on file:// */ });
+
+      // Reload once when the new SW takes control, so we get the new index.html
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    });
+  }
+</script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useMemo } = React;
+
+// Inline lucide-style icons as small SVG components (no external icon lib needed)
+const Icon = ({ d, size = 14, strokeWidth = 2 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const Check = (p) => <Icon {...p} d={<polyline points="20 6 9 17 4 12" />} />;
+const Clock = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />;
+const AlertTriangle = (p) => <Icon {...p} d={<><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>} />;
+const RotateCcw = (p) => <Icon {...p} d={<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>} />;
+const X = (p) => <Icon {...p} d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />;
+const CalendarIcon = (p) => <Icon {...p} d={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>} />;
+const List = (p) => <Icon {...p} d={<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>} />;
+const ChevronLeft = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>} />;
+const ChevronRight = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>} />;
+const Trash2 = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>} />;
+const Download = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
+const Upload = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>} />;
+
+const DEFAULT_TASKS = [
+  { id: 'bed-viviens',   group: 'Bed Change', label: "Vivien's room",   cadence: 14 },
+  { id: 'bed-emben',     group: 'Bed Change', label: 'Emily & Ben',     cadence: 14 },
+  { id: 'bed-reuben',    group: 'Bed Change', label: 'Reuben',          cadence: 14 },
+  { id: 'bed-spare',     group: 'Bed Change', label: 'Spare room',      cadence: 28 },
+
+  { id: 'hv-viviens',    group: 'Hoover', label: "Vivien's room",  cadence: 14 },
+  { id: 'hv-emben',      group: 'Hoover', label: 'Emily & Ben',    cadence: 14 },
+  { id: 'hv-reuben',     group: 'Hoover', label: 'Reuben',         cadence: 14 },
+  { id: 'hv-spare',      group: 'Hoover', label: 'Spare room',     cadence: 28 },
+  { id: 'hv-office',     group: 'Hoover', label: 'Office',         cadence: 14 },
+  { id: 'hv-topstairs',  group: 'Hoover', label: 'Top stairs',     cadence: 14 },
+  { id: 'hv-botstairs',  group: 'Hoover', label: 'Bottom stairs',  cadence: 14 },
+  { id: 'hv-hallway',    group: 'Hoover', label: 'Hallway',        cadence: 14 },
+  { id: 'hv-lounge',     group: 'Hoover', label: 'Lounge',         cadence: 7  },
+  { id: 'hv-kitchen',    group: 'Hoover', label: 'Kitchen',        cadence: 7  },
+  { id: 'hv-playarea',   group: 'Hoover', label: 'Play area',      cadence: 7  },
+
+  { id: 'du-viviens',    group: 'Dusting', label: "Vivien's room", cadence: 28 },
+  { id: 'du-emben',      group: 'Dusting', label: 'Emily & Ben',   cadence: 28 },
+  { id: 'du-reuben',     group: 'Dusting', label: 'Reuben',        cadence: 28 },
+  { id: 'du-spare',      group: 'Dusting', label: 'Spare room',    cadence: 28 },
+  { id: 'du-office',     group: 'Dusting', label: 'Office',        cadence: 28 },
+  { id: 'du-lounge',     group: 'Dusting', label: 'Lounge',        cadence: 14 },
+  { id: 'du-kitchen',    group: 'Dusting', label: 'Kitchen',       cadence: 14 },
+  { id: 'du-playarea',   group: 'Dusting', label: 'Play area',     cadence: 14 },
+
+  { id: 'gr-v-toes',     group: 'Grooming', label: 'V. Toenails',    cadence: 28 },
+  { id: 'gr-v-fingers',  group: 'Grooming', label: 'V. Fingernails', cadence: 14 },
+  { id: 'gr-r-toes',     group: 'Grooming', label: 'R. Toenails',    cadence: 28 },
+  { id: 'gr-r-fingers',  group: 'Grooming', label: 'R. Fingernails', cadence: 14 },
+
+  // Bathrooms — Lower
+  { id: 'ba-low-toilet', group: 'Bathrooms', label: 'Lower · Toilet',  cadence: 7  },
+  { id: 'ba-low-sink',   group: 'Bathrooms', label: 'Lower · Sink',    cadence: 7  },
+  { id: 'ba-low-floor',  group: 'Bathrooms', label: 'Lower · Floors',  cadence: 7  },
+  // Bathrooms — Middle
+  { id: 'ba-mid-toilet', group: 'Bathrooms', label: 'Middle · Toilet', cadence: 7  },
+  { id: 'ba-mid-sink',   group: 'Bathrooms', label: 'Middle · Sink',   cadence: 7  },
+  { id: 'ba-mid-floor',  group: 'Bathrooms', label: 'Middle · Floors', cadence: 7  },
+  { id: 'ba-mid-bath',   group: 'Bathrooms', label: 'Middle · Bath',   cadence: 14 },
+  // Bathrooms — Upper
+  { id: 'ba-up-toilet',  group: 'Bathrooms', label: 'Upper · Toilet',  cadence: 7  },
+  { id: 'ba-up-sink',    group: 'Bathrooms', label: 'Upper · Sink',    cadence: 7  },
+  { id: 'ba-up-floor',   group: 'Bathrooms', label: 'Upper · Floors',  cadence: 7  },
+  { id: 'ba-up-shower',  group: 'Bathrooms', label: 'Upper · Shower',  cadence: 14 },
+
+  { id: 'mi-misc',       group: 'Misc', label: 'Miscellaneous', cadence: 14 },
+];
+
+const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Bathrooms', 'Grooming', 'Misc'];
+const GROUP_META = {
+  'Bed Change': { tag: '01', sub: 'sheets & linen', color: '#8b5a3c' },
+  'Hoover':     { tag: '02', sub: 'floors',         color: '#5e6e44' },
+  'Dusting':    { tag: '03', sub: 'surfaces',       color: '#a87a2c' },
+  'Bathrooms':  { tag: '04', sub: 'wet rooms',      color: '#3e7a8a' },
+  'Grooming':   { tag: '05', sub: 'nails',          color: '#7d5a8a' },
+  'Misc':       { tag: '06', sub: 'other',          color: '#6b6b6b' },
+};
+
+const STORAGE_KEY = 'house-ledger-v1';
+const VERSION = '1.2';
+const VERSION_DATE = '2026-05-08';
+
+const todayISO = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const daysBetween = (a, b) => {
+  const da = new Date(a + 'T00:00:00');
+  const db = new Date(b + 'T00:00:00');
+  return Math.round((db - da) / 86400000);
+};
+const formatDate = (iso) => {
+  if (!iso) return null;
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
+const formatDateLong = (iso) => {
+  if (!iso) return null;
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+};
+const offsetISO = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const statusFor = (task, lastDone) => {
+  if (!lastDone) return { kind: 'never', overdueBy: 0, daysSince: null };
+  const since = daysBetween(lastDone, todayISO());
+  const overdueBy = since - task.cadence;
+  if (overdueBy > 3) return { kind: 'overdue', overdueBy, daysSince: since };
+  if (overdueBy >= 0) return { kind: 'due', overdueBy, daysSince: since };
+  return { kind: 'fresh', overdueBy, daysSince: since };
+};
+
+function ChoreTracker() {
+  const [history, setHistory] = useState({});
+  const [tasks, setTasks] = useState(DEFAULT_TASKS);
+  const [filter, setFilter] = useState('all');
+  const [view, setView] = useState('list');
+  const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+
+  const [logTask, setLogTask] = useState(null);
+  const [historyTask, setHistoryTask] = useState(null);
+
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [calSelectedDate, setCalSelectedDate] = useState(null);
+
+  // Load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setHistory(parsed.history || {});
+        if (parsed.tasks) setTasks(parsed.tasks);
+      }
+    } catch (e) { /* first run */ }
+    setLoading(false);
+  }, []);
+
+  // Save
+  useEffect(() => {
+    if (loading) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ history, tasks }));
+    } catch (e) { console.error('save failed', e); }
+  }, [history, tasks, loading]);
+
+  // PWA install prompt capture
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstall(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const triggerInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setShowInstall(false);
+  };
+
+  const addEntry = (taskId, iso) => {
+    setHistory((h) => {
+      const arr = h[taskId] || [];
+      if (arr.includes(iso)) return h;
+      return { ...h, [taskId]: [...arr, iso].sort() };
+    });
+  };
+  const removeEntry = (taskId, iso) => {
+    setHistory((h) => ({ ...h, [taskId]: (h[taskId] || []).filter((d) => d !== iso) }));
+  };
+  const updateCadence = (taskId, newCadence) => {
+    setTasks((ts) => ts.map((t) => (t.id === taskId ? { ...t, cadence: newCadence } : t)));
+  };
+
+  const exportData = () => {
+    const blob = new Blob([JSON.stringify({ history, tasks }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `house-ledger-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importData = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (parsed.history) setHistory(parsed.history);
+        if (parsed.tasks) setTasks(parsed.tasks);
+      } catch (err) {
+        alert('That file does not look like a valid Ledger backup.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const enriched = useMemo(() => tasks.map((t) => {
+    const arr = history[t.id] || [];
+    const lastDone = arr.length ? arr[arr.length - 1] : null;
+    return { ...t, lastDone, history: arr, status: statusFor(t, lastDone) };
+  }), [tasks, history]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return enriched;
+    if (filter === 'overdue') return enriched.filter((t) => t.status.kind === 'overdue' || t.status.kind === 'never');
+    if (filter === 'due') return enriched.filter((t) => ['due', 'overdue', 'never'].includes(t.status.kind));
+    return enriched;
+  }, [enriched, filter]);
+
+  const counts = useMemo(() => ({
+    overdue: enriched.filter((t) => t.status.kind === 'overdue' || t.status.kind === 'never').length,
+    due:     enriched.filter((t) => t.status.kind === 'due').length,
+    fresh:   enriched.filter((t) => t.status.kind === 'fresh').length,
+    total:   enriched.length,
+  }), [enriched]);
+
+  const grouped = useMemo(() => {
+    const map = {};
+    filtered.forEach((t) => { (map[t.group] = map[t.group] || []).push(t); });
+    const order = { never: 0, overdue: 1, due: 2, fresh: 3 };
+    Object.values(map).forEach((arr) => arr.sort((a, b) => order[a.status.kind] - order[b.status.kind]));
+    return map;
+  }, [filtered]);
+
+  const dateIndex = useMemo(() => {
+    const idx = {};
+    Object.entries(history).forEach(([taskId, dates]) => {
+      dates.forEach((d) => { (idx[d] = idx[d] || []).push(taskId); });
+    });
+    return idx;
+  }, [history]);
+
+  return (
+    <div className="min-h-screen w-full" style={{
+      background: '#f4ede0',
+      backgroundImage: `
+        radial-gradient(circle at 20% 10%, rgba(180, 140, 90, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(120, 90, 60, 0.06) 0%, transparent 50%),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 31px, rgba(120, 90, 60, 0.06) 31px, rgba(120, 90, 60, 0.06) 32px)
+      `,
+      fontFamily: '"Fraunces", "Times New Roman", serif',
+      color: '#2a1f15',
+    }}>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+        <header className="mb-6 pb-6" style={{ borderBottom: '3px double #2a1f15' }}>
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="mono text-xs tracking-[0.2em] uppercase" style={{ color: '#7a5f3f' }}>
+              No. 001 · Est. {new Date().getFullYear()}
+            </span>
+            <span className="mono text-xs tracking-wider" style={{ color: '#7a5f3f' }}>
+              {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </span>
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-extrabold leading-none tracking-tight" style={{
+            fontVariationSettings: '"opsz" 144', letterSpacing: '-0.03em',
+          }}>
+            The House<br/>
+            <span className="italic font-light" style={{ color: '#7a5f3f' }}>Ledger</span>
+          </h1>
+          <p className="mono text-xs mt-3 tracking-wide" style={{ color: '#7a5f3f' }}>
+            A record of household chores · kept faithfully
+          </p>
+        </header>
+
+        {showInstall && installPrompt && (
+          <div className="mb-4 p-3 flex items-center justify-between gap-2 fadein"
+               style={{ background: '#2a1f15', color: '#f4ede0', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #7a5f3f' }}>
+            <div className="text-sm">
+              <div className="font-semibold">Install as app?</div>
+              <div className="mono text-[10px] tracking-widest uppercase opacity-80">Adds to home screen · works offline</div>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={triggerInstall} className="px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: '#7a8b5c', border: '1.5px solid #f4ede0' }}>Install</button>
+              <button onClick={() => setShowInstall(false)} className="px-2 py-1.5"
+                      style={{ background: 'transparent', border: '1.5px solid #f4ede0' }} aria-label="Dismiss">
+                <X size={12} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex mb-6" style={{ border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+          <ViewTab active={view === 'list'} onClick={() => setView('list')} icon={<List size={14} />} label="List" />
+          <ViewTab active={view === 'calendar'} onClick={() => setView('calendar')} icon={<CalendarIcon size={14} />} label="Calendar" />
+        </div>
+
+        {view === 'list' && (
+          <>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <StatCard tone="overdue" label="Overdue" value={counts.overdue} active={filter === 'overdue'} onClick={() => setFilter(filter === 'overdue' ? 'all' : 'overdue')} />
+              <StatCard tone="due"     label="Due now" value={counts.due}     active={filter === 'due'}     onClick={() => setFilter(filter === 'due' ? 'all' : 'due')} />
+              <StatCard tone="fresh"   label="Fresh"   value={counts.fresh}   active={false}                onClick={() => setFilter('all')} />
+            </div>
+
+            <div className="flex items-center justify-between mb-6 mono text-xs uppercase tracking-widest gap-3">
+              <span style={{ color: '#7a5f3f' }}>{filtered.length} of {counts.total}</span>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowSettings((s) => !s)} className="underline underline-offset-4 hover:no-underline" style={{ color: '#2a1f15' }}>
+                  {showSettings ? 'close' : 'cadences'}
+                </button>
+                <button onClick={exportData} className="hover:opacity-70" title="Export backup" aria-label="Export backup"><Download size={12} /></button>
+                <label className="hover:opacity-70 cursor-pointer" title="Import backup" aria-label="Import backup">
+                  <Upload size={12} />
+                  <input type="file" accept="application/json" className="hidden" onChange={(e) => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
+                </label>
+              </div>
+            </div>
+
+            {showSettings && (
+              <div className="mb-6 p-4" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>
+                <h3 className="mono text-xs uppercase tracking-widest mb-3" style={{ color: '#7a5f3f' }}>
+                  Days between completions before each task is due again
+                </h3>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {tasks.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between text-sm">
+                      <span className="truncate pr-2">
+                        <span className="mono text-xs" style={{ color: '#7a5f3f' }}>{GROUP_META[t.group]?.tag} </span>
+                        {t.label} <span className="italic" style={{ color: '#7a5f3f' }}>· {t.group}</span>
+                      </span>
+                      <input type="number" min="1" max="365" value={t.cadence}
+                        onChange={(e) => updateCadence(t.id, parseInt(e.target.value) || 1)}
+                        className="mono w-16 px-2 py-1 text-right"
+                        style={{ background: '#f4ede0', border: '1px solid #2a1f15' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loading && (<div className="text-center py-12 mono text-sm" style={{ color: '#7a5f3f' }}>Opening the ledger…</div>)}
+
+            {!loading && GROUP_ORDER.map((groupName) => {
+              const items = grouped[groupName];
+              if (!items || items.length === 0) return null;
+              const meta = GROUP_META[groupName];
+              return (
+                <section key={groupName} className="mb-8">
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <span className="mono text-2xl font-bold" style={{ color: '#7a5f3f' }}>{meta.tag}</span>
+                    <h2 className="text-2xl font-bold tracking-tight" style={{ letterSpacing: '-0.02em' }}>{groupName}</h2>
+                    <span className="italic text-sm" style={{ color: '#7a5f3f' }}>{meta.sub}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((task) => (
+                      <TaskRow
+                        key={task.id} task={task}
+                        onQuickDone={() => addEntry(task.id, todayISO())}
+                        onPickDate={() => setLogTask(task)}
+                        onOpenHistory={() => setHistoryTask(task)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+
+            {!loading && filtered.length === 0 && (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">✓</div>
+                <p className="text-xl italic">All caught up.</p>
+                <p className="mono text-xs mt-2 tracking-widest uppercase" style={{ color: '#7a5f3f' }}>The house is in order</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {view === 'calendar' && (
+          <CalendarView
+            month={calMonth} setMonth={setCalMonth}
+            dateIndex={dateIndex} tasks={tasks}
+            selectedDate={calSelectedDate} setSelectedDate={setCalSelectedDate}
+            onRemoveEntry={removeEntry}
+          />
+        )}
+
+        <footer className="mt-12 pt-6 mono text-[10px] text-center tracking-widest uppercase" style={{
+          borderTop: '1px solid #c4b596', color: '#7a5f3f',
+        }}>
+          Tap row to log today · 📅 for a different date · ↻ for full history
+          <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE}</div>
+        </footer>
+      </div>
+
+      {logTask && (
+        <DatePickerModal task={logTask} onClose={() => setLogTask(null)}
+          onConfirm={(iso) => { addEntry(logTask.id, iso); setLogTask(null); }} />
+      )}
+      {historyTask && (
+        <HistoryModal task={enriched.find((t) => t.id === historyTask.id)}
+          onClose={() => setHistoryTask(null)}
+          onRemove={(iso) => removeEntry(historyTask.id, iso)}
+          onAdd={(iso) => addEntry(historyTask.id, iso)} />
+      )}
+    </div>
+  );
+}
+
+function ViewTab({ active, onClick, icon, label }) {
+  return (
+    <button onClick={onClick}
+      className="flex-1 flex items-center justify-center gap-2 py-2.5 mono text-xs uppercase tracking-widest transition-colors"
+      style={{ background: active ? '#2a1f15' : 'transparent', color: active ? '#f4ede0' : '#2a1f15' }}>
+      {icon} {label}
+    </button>
+  );
+}
+
+function StatCard({ tone, label, value, active, onClick }) {
+  const tones = {
+    overdue: { bg: '#c44536', fg: '#f4ede0' },
+    due:     { bg: '#d4a04a', fg: '#2a1f15' },
+    fresh:   { bg: '#7a8b5c', fg: '#f4ede0' },
+  };
+  const t = tones[tone];
+  return (
+    <button onClick={onClick}
+      className={`p-3 text-left transition-transform ${active ? 'scale-105' : 'hover:scale-[1.02]'}`}
+      style={{ background: t.bg, color: t.fg, border: '1.5px solid #2a1f15',
+               boxShadow: active ? '4px 4px 0 #2a1f15' : '2px 2px 0 #2a1f15' }}>
+      <div className="mono text-[10px] uppercase tracking-widest opacity-90">{label}</div>
+      <div className="text-3xl font-extrabold leading-none mt-1" style={{ letterSpacing: '-0.04em' }}>{value}</div>
+    </button>
+  );
+}
+
+function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
+  const [justDone, setJustDone] = useState(false);
+  const { status, lastDone, cadence } = task;
+
+  const handleQuickDone = () => {
+    setJustDone(true);
+    setTimeout(() => setJustDone(false), 600);
+    onQuickDone();
+  };
+
+  const statusStyles = {
+    overdue: { bg: '#fce8e3', accent: '#c44536', icon: <AlertTriangle size={14} /> },
+    never:   { bg: '#fce8e3', accent: '#c44536', icon: <AlertTriangle size={14} /> },
+    due:     { bg: '#faf0d8', accent: '#a87a2c', icon: <Clock size={14} /> },
+    fresh:   { bg: '#eef0e3', accent: '#5e6e44', icon: <Check size={14} /> },
+  };
+  const s = statusStyles[status.kind];
+
+  const statusLabel =
+    status.kind === 'never'   ? 'Never logged' :
+    status.kind === 'overdue' ? `${status.overdueBy} day${status.overdueBy === 1 ? '' : 's'} overdue` :
+    status.kind === 'due'     ? 'Due today' :
+                                `${Math.abs(status.overdueBy)} day${Math.abs(status.overdueBy) === 1 ? '' : 's'} until due`;
+
+  return (
+    <div className="flex items-stretch" style={{ background: s.bg, border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+      <button onClick={handleQuickDone}
+        className="flex-1 flex items-center justify-between gap-3 px-4 py-3 text-left active:translate-x-[1px] active:translate-y-[1px] transition-transform">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`flex-shrink-0 w-7 h-7 flex items-center justify-center transition-all ${justDone ? 'stamp-anim' : ''}`}
+            style={{ background: justDone ? '#7a8b5c' : 'transparent',
+                     border: `1.5px solid ${s.accent}`,
+                     color: justDone ? '#f4ede0' : s.accent }}>
+            {justDone ? <Check size={16} strokeWidth={3} /> : s.icon}
+          </div>
+          <div className="min-w-0">
+            <div className={`font-semibold truncate strikethrough-grow ${justDone ? 'done' : ''}`} style={{ letterSpacing: '-0.01em' }}>
+              {task.label}
+            </div>
+            <div className="mono text-[11px] tracking-wide" style={{ color: s.accent }}>
+              {statusLabel}
+              {lastDone && ` · last ${formatDate(lastDone)}`}
+              <span style={{ color: '#7a5f3f' }}> · every {cadence}d</span>
+            </div>
+          </div>
+        </div>
+      </button>
+
+      <button onClick={onPickDate}
+        className="px-3 flex items-center justify-center hover:bg-black/5 transition-colors"
+        style={{ borderLeft: '1.5px solid #2a1f15', color: '#7a5f3f' }}
+        aria-label="Log for a different date" title="Log for a different date">
+        <CalendarIcon size={14} />
+      </button>
+      <button onClick={onOpenHistory}
+        className="px-3 flex items-center justify-center hover:bg-black/5 transition-colors"
+        style={{ borderLeft: '1.5px solid #2a1f15', color: '#7a5f3f' }}
+        aria-label="View history" title="View history">
+        <RotateCcw size={14} />
+      </button>
+    </div>
+  );
+}
+
+function ModalShell({ children, onClose, title, subtitle }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+         style={{ background: 'rgba(42, 31, 21, 0.5)' }} onClick={onClose}>
+      <div className="w-full sm:max-w-md fadein"
+           style={{ background: '#f4ede0', border: '2px solid #2a1f15', boxShadow: '4px 4px 0 #2a1f15',
+                    maxHeight: '90vh', overflowY: 'auto' }}
+           onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-4 sm:p-5" style={{ borderBottom: '1.5px solid #2a1f15' }}>
+          <div className="min-w-0">
+            <h3 className="text-xl font-bold leading-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h3>
+            {subtitle && <p className="mono text-xs mt-1 tracking-wide" style={{ color: '#7a5f3f' }}>{subtitle}</p>}
+          </div>
+          <button onClick={onClose} className="flex-shrink-0 p-1 hover:bg-black/5" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 sm:p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function DatePickerModal({ task, onClose, onConfirm }) {
+  const [date, setDate] = useState(todayISO());
+  const presets = [
+    { label: 'Today',      offset: 0 },
+    { label: 'Yesterday',  offset: -1 },
+    { label: '2 days ago', offset: -2 },
+    { label: '3 days ago', offset: -3 },
   ];
 
-  if (chores.length === 0) {
-    chores = DEFAULT_CHORES.map((c, i) => ({
-      id: Date.now() + i,
-      name: c.name,
-      icon: c.icon,
-      done: false,
-      lastDone: null,
-    }));
-    save();
-  }
-
-  function save() { localStorage.setItem('chores', JSON.stringify(chores)); }
-
-  // ─── UTILS ───────────────────────────────────────────────────────────
-  const ICONS = ['🧹','👕','🍽️','🚿','🗑️','🪣','🪴','🛏️','🧺','🧼','🧽','🪟','🧴','🐾','📦','🔧'];
-
-  function randomIcon() { return ICONS[Math.floor(Math.random() * ICONS.length)]; }
-
-  function formatDate(ts) {
-    if (!ts) return 'Never done';
-    const d = new Date(ts);
-    const today = new Date();
-    const diff = Math.floor((today - d) / 86400000);
-    if (diff === 0) return 'Done today ✓';
-    if (diff === 1) return 'Done yesterday';
-    if (diff < 7) return `Done ${diff} days ago`;
-    if (diff < 14) return 'Done last week';
-    return 'Done ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
-  }
-
-  function isOverdue(ts, days = 7) {
-    if (!ts) return true;
-    return (Date.now() - ts) > days * 86400000;
-  }
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2000);
-  }
-
-  // ─── RENDER ──────────────────────────────────────────────────────────
-  function render() {
-    const pending = chores.filter(c => !c.done);
-    const done    = chores.filter(c => c.done);
-
-    // Progress
-    const total = chores.length;
-    const doneCount = done.length;
-    const pct = total ? Math.round(doneCount / total * 100) : 0;
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressLabel').textContent = `${doneCount} / ${total}`;
-
-    // Today
-    document.getElementById('todayDate').textContent =
-      new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
-
-    // Pending list
-    const pl = document.getElementById('choreList');
-    pl.innerHTML = '';
-    document.getElementById('pendingLabel').textContent =
-      pending.length ? `To Do — ${pending.length}` : '';
-
-    pending.forEach(c => pl.appendChild(makeCard(c)));
-
-    // Done list
-    const dl = document.getElementById('doneList');
-    dl.innerHTML = '';
-    const doneLabel = document.getElementById('doneLabel');
-    if (done.length) {
-      doneLabel.style.display = '';
-      doneLabel.textContent = `Completed — ${done.length}`;
-      done.forEach(c => dl.appendChild(makeCard(c)));
-    } else {
-      doneLabel.style.display = 'none';
-    }
-
-    document.getElementById('emptyState').classList.toggle('hidden', total > 0);
-  }
-
-  function makeCard(c) {
-    const div = document.createElement('div');
-    div.className = 'chore-card' + (c.done ? ' done' : '');
-    div.dataset.id = c.id;
-
-    const overdue = !c.done && isOverdue(c.lastDone);
-    const overdueHtml = overdue
-      ? `<span class="overdue-badge">overdue</span>` : '';
-
-    div.innerHTML = `
-      <div class="chore-icon">${c.icon}</div>
-      <div class="chore-info">
-        <div class="chore-name">${c.name}${overdueHtml}</div>
-        <div class="chore-last">${formatDate(c.lastDone)}</div>
+  return (
+    <ModalShell onClose={onClose} title={task.label} subtitle={`${task.group.toUpperCase()} · log a completion date`}>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {presets.map((p) => {
+          const iso = offsetISO(p.offset);
+          const active = date === iso;
+          return (
+            <button key={p.label} onClick={() => setDate(iso)}
+              className="px-3 py-2.5 text-sm transition-transform"
+              style={{ background: active ? '#2a1f15' : '#ebe0c9',
+                       color: active ? '#f4ede0' : '#2a1f15',
+                       border: '1.5px solid #2a1f15',
+                       boxShadow: active ? '3px 3px 0 #2a1f15' : '1px 1px 0 #2a1f15' }}>
+              <div className="font-semibold">{p.label}</div>
+              <div className="mono text-[10px] opacity-80">{formatDate(iso)}</div>
+            </button>
+          );
+        })}
       </div>
-      <div class="chore-check">${c.done ? '✓' : ''}</div>
-      <button class="chore-delete" title="Delete">✕</button>
-    `;
 
-    // Toggle done
-    div.addEventListener('click', (e) => {
-      if (e.target.closest('.chore-delete')) return;
-      const chore = chores.find(x => x.id == div.dataset.id);
-      if (!chore) return;
-      chore.done = !chore.done;
-      if (chore.done) {
-        chore.lastDone = Date.now();
-        showToast(`✓ ${chore.name} done!`);
-      } else {
-        showToast(`↩ Marked as undone`);
-      }
-      save();
-      render();
-    });
+      <label className="block mb-4">
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: '#7a5f3f' }}>Or pick a date</span>
+        <input type="date" value={date} max={todayISO()}
+          onChange={(e) => setDate(e.target.value)}
+          className="mono w-full mt-1 px-3 py-2.5 text-base"
+          style={{ background: '#fff', border: '1.5px solid #2a1f15' }} />
+      </label>
 
-    // Delete
-    div.querySelector('.chore-delete').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (confirm(`Delete "${c.name}"?`)) {
-        chores = chores.filter(x => x.id != c.id);
-        save();
-        render();
-      }
-    });
+      <div className="flex gap-2">
+        <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-semibold"
+          style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>Cancel</button>
+        <button onClick={() => onConfirm(date)} className="flex-1 px-4 py-2.5 text-sm font-semibold"
+          style={{ background: '#7a8b5c', color: '#f4ede0', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+          Log it
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
 
-    return div;
+function HistoryModal({ task, onClose, onRemove, onAdd }) {
+  const [showAdd, setShowAdd] = useState(false);
+  if (!task) return null;
+  const dates = [...(task.history || [])].reverse();
+
+  return (
+    <ModalShell onClose={onClose} title={task.label}
+      subtitle={`${task.group.toUpperCase()} · ${dates.length} completion${dates.length === 1 ? '' : 's'} logged`}>
+      {dates.length === 0 && (
+        <div className="text-center py-6 mono text-sm" style={{ color: '#7a5f3f' }}>No completions logged yet.</div>
+      )}
+
+      {dates.length > 0 && (
+        <div className="space-y-1.5 mb-4 max-h-64 overflow-y-auto">
+          {dates.map((iso, i) => (
+            <div key={iso} className="flex items-center justify-between px-3 py-2"
+              style={{ background: i === 0 ? '#eef0e3' : '#ebe0c9', border: '1px solid #2a1f15' }}>
+              <div>
+                <div className="font-semibold text-sm">{formatDateLong(iso)}</div>
+                {i === 0 && <div className="mono text-[10px] uppercase tracking-widest" style={{ color: '#5e6e44' }}>Most recent</div>}
+              </div>
+              <button onClick={() => onRemove(iso)} className="p-1.5 hover:bg-black/5"
+                style={{ color: '#c44536' }} aria-label="Delete this entry" title="Delete this entry">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!showAdd && (
+        <button onClick={() => setShowAdd(true)} className="w-full px-4 py-2.5 text-sm font-semibold"
+          style={{ background: '#ebe0c9', border: '1.5px dashed #2a1f15' }}>
+          + Add a missed date
+        </button>
+      )}
+
+      {showAdd && (
+        <AddDateInline onCancel={() => setShowAdd(false)} onConfirm={(iso) => { onAdd(iso); setShowAdd(false); }} />
+      )}
+    </ModalShell>
+  );
+}
+
+function AddDateInline({ onCancel, onConfirm }) {
+  const [date, setDate] = useState(todayISO());
+  return (
+    <div className="p-3" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>
+      <label className="block mb-3">
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: '#7a5f3f' }}>Date completed</span>
+        <input type="date" value={date} max={todayISO()}
+          onChange={(e) => setDate(e.target.value)}
+          className="mono w-full mt-1 px-3 py-2 text-base"
+          style={{ background: '#fff', border: '1.5px solid #2a1f15' }} />
+      </label>
+      <div className="flex gap-2">
+        <button onClick={onCancel} className="flex-1 px-3 py-2 text-sm"
+          style={{ background: '#f4ede0', border: '1.5px solid #2a1f15' }}>Cancel</button>
+        <button onClick={() => onConfirm(date)} className="flex-1 px-3 py-2 text-sm font-semibold"
+          style={{ background: '#7a8b5c', color: '#f4ede0', border: '1.5px solid #2a1f15' }}>Add</button>
+      </div>
+    </div>
+  );
+}
+
+function CalendarView({ month, setMonth, dateIndex, tasks, selectedDate, setSelectedDate, onRemoveEntry }) {
+  const taskById = useMemo(() => Object.fromEntries(tasks.map((t) => [t.id, t])), [tasks]);
+
+  const monthStart = new Date(month.year, month.month, 1);
+  const monthName = monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const daysInMonth = new Date(month.year, month.month + 1, 0).getDate();
+  const firstDayJS = monthStart.getDay();
+  const firstDayMon = (firstDayJS + 6) % 7;
+
+  const today = todayISO();
+  const cells = [];
+  for (let i = 0; i < firstDayMon; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${month.year}-${String(month.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    cells.push({ d, iso });
   }
+  while (cells.length % 7 !== 0) cells.push(null);
 
-  // ─── ADD CHORE ───────────────────────────────────────────────────────
-  function addChore() {
-    const input = document.getElementById('addInput');
-    const name = input.value.trim();
-    if (!name) return;
-    chores.push({ id: Date.now(), name, icon: randomIcon(), done: false, lastDone: null });
-    save();
-    render();
-    input.value = '';
-    input.blur();
-    showToast('Chore added!');
-  }
+  const prevMonth = () => {
+    const m = month.month - 1;
+    if (m < 0) setMonth({ year: month.year - 1, month: 11 });
+    else setMonth({ year: month.year, month: m });
+    setSelectedDate(null);
+  };
+  const nextMonth = () => {
+    const m = month.month + 1;
+    if (m > 11) setMonth({ year: month.year + 1, month: 0 });
+    else setMonth({ year: month.year, month: m });
+    setSelectedDate(null);
+  };
 
-  document.getElementById('addBtn').addEventListener('click', addChore);
-  document.getElementById('addInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addChore();
-  });
+  const selectedEntries = selectedDate
+    ? (dateIndex[selectedDate] || []).map((tid) => taskById[tid]).filter(Boolean)
+    : [];
 
-  // ─── PWA INSTALL ─────────────────────────────────────────────────────
-  let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installBanner').classList.remove('hidden');
-  });
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={prevMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid #2a1f15' }} aria-label="Previous month">
+          <ChevronLeft size={16} />
+        </button>
+        <h2 className="text-2xl font-bold tracking-tight" style={{ letterSpacing: '-0.02em' }}>{monthName}</h2>
+        <button onClick={nextMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid #2a1f15' }} aria-label="Next month">
+          <ChevronRight size={16} />
+        </button>
+      </div>
 
-  document.getElementById('installBtn').addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    document.getElementById('installBanner').classList.add('hidden');
-    if (outcome === 'accepted') showToast('App installed! 🎉');
-  });
+      <div className="grid grid-cols-7 mb-1 mono text-[10px] uppercase tracking-widest text-center" style={{ color: '#7a5f3f' }}>
+        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => <div key={d} className="py-1">{d}</div>)}
+      </div>
 
-  window.addEventListener('appinstalled', () => {
-    document.getElementById('installBanner').classList.add('hidden');
-    showToast('App installed! 🎉');
-  });
+      <div className="grid grid-cols-7 gap-1" style={{ border: '1.5px solid #2a1f15', padding: 4, background: '#ebe0c9' }}>
+        {cells.map((cell, i) => {
+          if (!cell) return <div key={i} style={{ aspectRatio: '1 / 1' }} />;
+          const entries = dateIndex[cell.iso] || [];
+          const isToday = cell.iso === today;
+          const isSelected = cell.iso === selectedDate;
+          const groupsHere = Array.from(new Set(entries.map((tid) => taskById[tid]?.group).filter(Boolean)));
 
-  // ─── INIT ─────────────────────────────────────────────────────────────
-  render();
+          return (
+            <button key={i} onClick={() => setSelectedDate(isSelected ? null : cell.iso)}
+              className="relative flex flex-col items-stretch justify-between p-1 text-left transition-transform hover:scale-[1.05]"
+              style={{ aspectRatio: '1 / 1',
+                       background: isSelected ? '#2a1f15' : isToday ? '#faf0d8' : '#f4ede0',
+                       color: isSelected ? '#f4ede0' : '#2a1f15',
+                       border: `1px solid ${isToday && !isSelected ? '#a87a2c' : '#2a1f15'}` }}>
+              <div className="flex items-start justify-between">
+                <span className="mono text-[11px] font-semibold leading-none">{cell.d}</span>
+                {entries.length > 0 && (
+                  <span className="mono text-[9px] font-bold" style={{ color: isSelected ? '#f4ede0' : '#7a5f3f' }}>
+                    {entries.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-[2px] justify-start">
+                {groupsHere.slice(0, 4).map((g) => (
+                  <span key={g} style={{ width: 6, height: 6, borderRadius: '50%',
+                                         background: GROUP_META[g]?.color || '#7a5f3f' }} />
+                ))}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 mono text-[10px] uppercase tracking-widest" style={{ color: '#7a5f3f' }}>
+        {GROUP_ORDER.map((g) => (
+          <div key={g} className="flex items-center gap-1.5">
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_META[g].color, display: 'inline-block' }} />
+            {g}
+          </div>
+        ))}
+      </div>
+
+      {selectedDate && (
+        <div className="mt-5 p-4 fadein" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+          <div className="flex items-baseline justify-between mb-3">
+            <h3 className="text-lg font-bold" style={{ letterSpacing: '-0.02em' }}>{formatDateLong(selectedDate)}</h3>
+            <span className="mono text-xs" style={{ color: '#7a5f3f' }}>{selectedEntries.length} logged</span>
+          </div>
+
+          {selectedEntries.length === 0 && (
+            <p className="text-sm italic" style={{ color: '#7a5f3f' }}>Nothing logged on this day.</p>
+          )}
+
+          {selectedEntries.length > 0 && (
+            <ul className="space-y-1.5">
+              {selectedEntries.map((t) => (
+                <li key={t.id} className="flex items-center justify-between px-3 py-2"
+                  style={{ background: '#f4ede0', border: '1px solid #2a1f15' }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_META[t.group].color, flexShrink: 0 }} />
+                    <span className="text-sm truncate">
+                      <span className="font-semibold">{t.label}</span>
+                      <span className="italic" style={{ color: '#7a5f3f' }}> · {t.group}</span>
+                    </span>
+                  </div>
+                  <button onClick={() => onRemoveEntry(t.id, selectedDate)}
+                    className="p-1.5 hover:bg-black/5 flex-shrink-0"
+                    style={{ color: '#c44536' }}
+                    aria-label="Remove entry" title="Remove entry">
+                    <Trash2 size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ChoreTracker />);
 </script>
 </body>
 </html>
