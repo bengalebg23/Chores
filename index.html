@@ -24,12 +24,52 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
+  :root {
+    --bg:        #f4ede0;
+    --bg-2:      #ebe0c9;
+    --bg-3:      #ffffff;
+    --bg-modal:  var(--bg-modal);
+    --text:      #2a1f15;
+    --sub:       #7a5f3f;
+    --border:    #2a1f15;
+    --rule:      #c4b596;
+    --over-bg:   #fce8e3;
+    --over-fg:   #c44536;
+    --due-bg:    #faf0d8;
+    --due-fg:    #a87a2c;
+    --fresh-bg:  #eef0e3;
+    --fresh-fg:  #5e6e44;
+    --selected-bg: #2a1f15;
+    --selected-fg: #f4ede0;
+    --shadow:    #2a1f15;
+    --hover:     rgba(0, 0, 0, 0.05);
+  }
+  body.dark {
+    --bg:        #1a1612;
+    --bg-2:      #2a2520;
+    --bg-3:      #100d0a;
+    --bg-modal:  rgba(0, 0, 0, 0.7);
+    --text:      #e8dcc4;
+    --sub:       #9a8265;
+    --border:    #5c4d3a;
+    --rule:      #3a302a;
+    --over-bg:   #3a1d18;
+    --over-fg:   #e07060;
+    --due-bg:    #3a2f15;
+    --due-fg:    #d4a04a;
+    --fresh-bg:  #1f2a1a;
+    --fresh-fg:  #9bad7c;
+    --selected-bg: #e8dcc4;
+    --selected-fg: #1a1612;
+    --shadow:    #000000;
+    --hover:     rgba(255, 255, 255, 0.06);
+  }
   html, body, #root {
     margin: 0;
     padding: 0;
     min-height: 100vh;
     min-height: 100dvh;
-    background: #f4ede0;
+    background: var(--bg);
   }
   body {
     /* Honour notches when installed as PWA */
@@ -111,6 +151,8 @@ const CalendarIcon = (p) => <Icon {...p} d={<><rect x="3" y="4" width="18" heigh
 const List = (p) => <Icon {...p} d={<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>} />;
 const ChevronLeft = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>} />;
 const ChevronRight = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>} />;
+const Sun = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>} />;
+const Moon = (p) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>} />;
 const Trash2 = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>} />;
 const Download = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
 const Upload = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>} />;
@@ -168,15 +210,15 @@ const DEFAULT_TASKS = [
 const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Bathrooms', 'Grooming', 'Misc'];
 const GROUP_META = {
   'Bed Change': { tag: '01', sub: 'sheets & linen', color: '#8b5a3c' },
-  'Hoover':     { tag: '02', sub: 'floors',         color: '#5e6e44' },
-  'Dusting':    { tag: '03', sub: 'surfaces',       color: '#a87a2c' },
+  'Hoover':     { tag: '02', sub: 'floors',         color: 'var(--fresh-fg)' },
+  'Dusting':    { tag: '03', sub: 'surfaces',       color: 'var(--due-fg)' },
   'Bathrooms':  { tag: '04', sub: 'wet rooms',      color: '#3e7a8a' },
   'Grooming':   { tag: '05', sub: 'nails',          color: '#7d5a8a' },
   'Misc':       { tag: '06', sub: 'other',          color: '#6b6b6b' },
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.4';
+const VERSION = '1.5';
 const VERSION_DATE = '2026-05-08';
 
 const todayISO = () => {
@@ -223,6 +265,17 @@ function ChoreTracker() {
   const [view, setView] = useState('list');
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [dark, setDark] = useState(() => {
+    try { return localStorage.getItem('house-ledger-theme') === 'dark'; } catch (e) { return false; }
+  });
+
+  // Apply theme class to body and persist
+  useEffect(() => {
+    document.body.classList.toggle('dark', dark);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#1a1612' : '#f4ede0');
+    try { localStorage.setItem('house-ledger-theme', dark ? 'dark' : 'light'); } catch (e) {}
+  }, [dark]);
   const [showInstall, setShowInstall] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
@@ -357,40 +410,49 @@ function ChoreTracker() {
 
   return (
     <div className="min-h-screen w-full" style={{
-      background: '#f4ede0',
+      background: 'var(--bg)',
       backgroundImage: `
         radial-gradient(circle at 20% 10%, rgba(180, 140, 90, 0.08) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(120, 90, 60, 0.06) 0%, transparent 50%),
         repeating-linear-gradient(0deg, transparent 0px, transparent 31px, rgba(120, 90, 60, 0.06) 31px, rgba(120, 90, 60, 0.06) 32px)
       `,
       fontFamily: '"Fraunces", "Times New Roman", serif',
-      color: '#2a1f15',
+      color: 'var(--text)',
     }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        <header className="mb-6 pb-6" style={{ borderBottom: '3px double #2a1f15' }}>
+        <header className="mb-6 pb-6" style={{ borderBottom: '3px double var(--border)' }}>
           <div className="flex items-baseline justify-between mb-2">
-            <span className="mono text-xs tracking-[0.2em] uppercase" style={{ color: '#7a5f3f' }}>
+            <span className="mono text-xs tracking-[0.2em] uppercase" style={{ color: 'var(--sub)' }}>
               No. 001 · Est. {new Date().getFullYear()}
             </span>
-            <span className="mono text-xs tracking-wider" style={{ color: '#7a5f3f' }}>
-              {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="mono text-xs tracking-wider" style={{ color: 'var(--sub)' }}>
+                {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </span>
+              <button onClick={() => setDark(!dark)}
+                className="p-1.5 hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--sub)' }}
+                aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={dark ? 'Light mode' : 'Dark mode'}>
+                {dark ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
+            </div>
           </div>
           <h1 className="text-5xl sm:text-6xl font-extrabold leading-none tracking-tight" style={{
             fontVariationSettings: '"opsz" 144', letterSpacing: '-0.03em',
           }}>
             The House<br/>
-            <span className="italic font-light" style={{ color: '#7a5f3f' }}>Ledger</span>
+            <span className="italic font-light" style={{ color: 'var(--sub)' }}>Ledger</span>
           </h1>
-          <p className="mono text-xs mt-3 tracking-wide" style={{ color: '#7a5f3f' }}>
+          <p className="mono text-xs mt-3 tracking-wide" style={{ color: 'var(--sub)' }}>
             A record of household chores · kept faithfully
           </p>
         </header>
 
         {showInstall && installPrompt && (
           <div className="mb-4 p-3 flex items-center justify-between gap-2 fadein"
-               style={{ background: '#2a1f15', color: '#f4ede0', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #7a5f3f' }}>
+               style={{ background: 'var(--selected-bg)', color: 'var(--selected-fg)', border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--sub)' }}>
             <div className="text-sm">
               <div className="font-semibold">Install as app?</div>
               <div className="mono text-[10px] tracking-widest uppercase opacity-80">Adds to home screen · works offline</div>
@@ -406,7 +468,7 @@ function ChoreTracker() {
           </div>
         )}
 
-        <div className="flex mb-6" style={{ border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+        <div className="flex mb-6" style={{ border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--shadow)' }}>
           <ViewTab active={view === 'list'} onClick={() => setView('list')} icon={<List size={14} />} label="List" />
           <ViewTab active={view === 'calendar'} onClick={() => setView('calendar')} icon={<CalendarIcon size={14} />} label="Calendar" />
         </div>
@@ -420,9 +482,9 @@ function ChoreTracker() {
             </div>
 
             <div className="flex items-center justify-between mb-6 mono text-xs uppercase tracking-widest gap-3">
-              <span style={{ color: '#7a5f3f' }}>{filtered.length} of {counts.total}</span>
+              <span style={{ color: 'var(--sub)' }}>{filtered.length} of {counts.total}</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => setShowSettings((s) => !s)} className="underline underline-offset-4 hover:no-underline" style={{ color: '#2a1f15' }}>
+                <button onClick={() => setShowSettings((s) => !s)} className="underline underline-offset-4 hover:no-underline" style={{ color: 'var(--text)' }}>
                   {showSettings ? 'close' : 'cadences'}
                 </button>
                 <button onClick={exportData} className="hover:opacity-70" title="Export backup" aria-label="Export backup"><Download size={12} /></button>
@@ -434,28 +496,28 @@ function ChoreTracker() {
             </div>
 
             {showSettings && (
-              <div className="mb-6 p-4" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>
-                <h3 className="mono text-xs uppercase tracking-widest mb-3" style={{ color: '#7a5f3f' }}>
+              <div className="mb-6 p-4" style={{ background: 'var(--bg-2)', border: '1.5px solid var(--border)' }}>
+                <h3 className="mono text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--sub)' }}>
                   Days between completions before each task is due again
                 </h3>
                 <div className="space-y-2 max-h-72 overflow-y-auto">
                   {tasks.map((t) => (
                     <div key={t.id} className="flex items-center justify-between text-sm">
                       <span className="truncate pr-2">
-                        <span className="mono text-xs" style={{ color: '#7a5f3f' }}>{GROUP_META[t.group]?.tag} </span>
-                        {t.label} <span className="italic" style={{ color: '#7a5f3f' }}>· {t.group}</span>
+                        <span className="mono text-xs" style={{ color: 'var(--sub)' }}>{GROUP_META[t.group]?.tag} </span>
+                        {t.label} <span className="italic" style={{ color: 'var(--sub)' }}>· {t.group}</span>
                       </span>
                       <input type="number" min="1" max="365" value={t.cadence}
                         onChange={(e) => updateCadence(t.id, parseInt(e.target.value) || 1)}
                         className="mono w-16 px-2 py-1 text-right"
-                        style={{ background: '#f4ede0', border: '1px solid #2a1f15' }} />
+                        style={{ background: 'var(--bg)', border: '1px solid var(--border)' }} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {loading && (<div className="text-center py-12 mono text-sm" style={{ color: '#7a5f3f' }}>Opening the ledger…</div>)}
+            {loading && (<div className="text-center py-12 mono text-sm" style={{ color: 'var(--sub)' }}>Opening the ledger…</div>)}
 
             {!loading && GROUP_ORDER.map((groupName) => {
               const items = grouped[groupName];
@@ -464,9 +526,9 @@ function ChoreTracker() {
               return (
                 <section key={groupName} className="mb-8">
                   <div className="flex items-baseline gap-3 mb-3">
-                    <span className="mono text-2xl font-bold" style={{ color: '#7a5f3f' }}>{meta.tag}</span>
+                    <span className="mono text-2xl font-bold" style={{ color: 'var(--sub)' }}>{meta.tag}</span>
                     <h2 className="text-2xl font-bold tracking-tight" style={{ letterSpacing: '-0.02em' }}>{groupName}</h2>
-                    <span className="italic text-sm" style={{ color: '#7a5f3f' }}>{meta.sub}</span>
+                    <span className="italic text-sm" style={{ color: 'var(--sub)' }}>{meta.sub}</span>
                   </div>
                   <div className="space-y-2">
                     {items.map((task) => (
@@ -486,7 +548,7 @@ function ChoreTracker() {
               <div className="text-center py-16">
                 <div className="text-5xl mb-4">✓</div>
                 <p className="text-xl italic">All caught up.</p>
-                <p className="mono text-xs mt-2 tracking-widest uppercase" style={{ color: '#7a5f3f' }}>The house is in order</p>
+                <p className="mono text-xs mt-2 tracking-widest uppercase" style={{ color: 'var(--sub)' }}>The house is in order</p>
               </div>
             )}
           </>
@@ -502,7 +564,7 @@ function ChoreTracker() {
         )}
 
         <footer className="mt-12 pt-6 mono text-[10px] text-center tracking-widest uppercase" style={{
-          borderTop: '1px solid #c4b596', color: '#7a5f3f',
+          borderTop: '1px solid var(--rule)', color: 'var(--sub)',
         }}>
           Tap row to log today · 📅 for a different date · ↻ for full history
           <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE}</div>
@@ -527,7 +589,7 @@ function ViewTab({ active, onClick, icon, label }) {
   return (
     <button onClick={onClick}
       className="flex-1 flex items-center justify-center gap-2 py-2.5 mono text-xs uppercase tracking-widest transition-colors"
-      style={{ background: active ? '#2a1f15' : 'transparent', color: active ? '#f4ede0' : '#2a1f15' }}>
+      style={{ background: active ? 'var(--selected-bg)' : 'transparent', color: active ? 'var(--selected-fg)' : 'var(--text)' }}>
       {icon} {label}
     </button>
   );
@@ -535,7 +597,7 @@ function ViewTab({ active, onClick, icon, label }) {
 
 function StatCard({ tone, label, value, active, onClick }) {
   const tones = {
-    overdue: { bg: '#c44536', fg: '#f4ede0' },
+    overdue: { bg: 'var(--over-fg)', fg: '#f4ede0' },
     due:     { bg: '#d4a04a', fg: '#2a1f15' },
     fresh:   { bg: '#7a8b5c', fg: '#f4ede0' },
   };
@@ -543,7 +605,7 @@ function StatCard({ tone, label, value, active, onClick }) {
   return (
     <button onClick={onClick}
       className={`p-3 text-left transition-transform ${active ? 'scale-105' : 'hover:scale-[1.02]'}`}
-      style={{ background: t.bg, color: t.fg, border: '1.5px solid #2a1f15',
+      style={{ background: t.bg, color: t.fg, border: '1.5px solid var(--border)',
                boxShadow: active ? '4px 4px 0 #2a1f15' : '2px 2px 0 #2a1f15' }}>
       <div className="mono text-[10px] uppercase tracking-widest opacity-90">{label}</div>
       <div className="text-3xl font-extrabold leading-none mt-1" style={{ letterSpacing: '-0.04em' }}>{value}</div>
@@ -562,10 +624,10 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
   };
 
   const statusStyles = {
-    overdue: { bg: '#fce8e3', accent: '#c44536', icon: <AlertTriangle size={14} /> },
-    never:   { bg: '#fce8e3', accent: '#c44536', icon: <AlertTriangle size={14} /> },
-    due:     { bg: '#faf0d8', accent: '#a87a2c', icon: <Clock size={14} /> },
-    fresh:   { bg: '#eef0e3', accent: '#5e6e44', icon: <Check size={14} /> },
+    overdue: { bg: 'var(--over-bg)', accent: 'var(--over-fg)', icon: <AlertTriangle size={14} /> },
+    never:   { bg: 'var(--over-bg)', accent: 'var(--over-fg)', icon: <AlertTriangle size={14} /> },
+    due:     { bg: 'var(--due-bg)', accent: 'var(--due-fg)', icon: <Clock size={14} /> },
+    fresh:   { bg: 'var(--fresh-bg)', accent: 'var(--fresh-fg)', icon: <Check size={14} /> },
   };
   const s = statusStyles[status.kind];
 
@@ -576,14 +638,14 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
                                 `${Math.abs(status.overdueBy)} day${Math.abs(status.overdueBy) === 1 ? '' : 's'} until due`;
 
   return (
-    <div className="flex items-stretch" style={{ background: s.bg, border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+    <div className="flex items-stretch" style={{ background: s.bg, border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--shadow)' }}>
       <button onClick={handleQuickDone}
         className="flex-1 flex items-center justify-between gap-3 px-4 py-3 text-left active:translate-x-[1px] active:translate-y-[1px] transition-transform">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`flex-shrink-0 w-7 h-7 flex items-center justify-center transition-all ${justDone ? 'stamp-anim' : ''}`}
             style={{ background: justDone ? '#7a8b5c' : 'transparent',
                      border: `1.5px solid ${s.accent}`,
-                     color: justDone ? '#f4ede0' : s.accent }}>
+                     color: justDone ? '#ffffff' : s.accent }}>
             {justDone ? <Check size={16} strokeWidth={3} /> : s.icon}
           </div>
           <div className="min-w-0">
@@ -593,7 +655,7 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
             <div className="mono text-[11px] tracking-wide" style={{ color: s.accent }}>
               {statusLabel}
               {lastDone && ` · last ${formatDate(lastDone)}`}
-              <span style={{ color: '#7a5f3f' }}> · every {cadence}d</span>
+              <span style={{ color: 'var(--sub)' }}> · every {cadence}d</span>
             </div>
           </div>
         </div>
@@ -601,13 +663,13 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
 
       <button onClick={onPickDate}
         className="px-3 flex items-center justify-center hover:bg-black/5 transition-colors"
-        style={{ borderLeft: '1.5px solid #2a1f15', color: '#7a5f3f' }}
+        style={{ borderLeft: '1.5px solid var(--border)', color: 'var(--sub)' }}
         aria-label="Log for a different date" title="Log for a different date">
         <CalendarIcon size={14} />
       </button>
       <button onClick={onOpenHistory}
         className="px-3 flex items-center justify-center hover:bg-black/5 transition-colors"
-        style={{ borderLeft: '1.5px solid #2a1f15', color: '#7a5f3f' }}
+        style={{ borderLeft: '1.5px solid var(--border)', color: 'var(--sub)' }}
         aria-label="View history" title="View history">
         <RotateCcw size={14} />
       </button>
@@ -618,15 +680,15 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
 function ModalShell({ children, onClose, title, subtitle }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-         style={{ background: 'rgba(42, 31, 21, 0.5)' }} onClick={onClose}>
+         style={{ background: 'var(--bg-modal)' }} onClick={onClose}>
       <div className="w-full sm:max-w-md fadein"
-           style={{ background: '#f4ede0', border: '2px solid #2a1f15', boxShadow: '4px 4px 0 #2a1f15',
+           style={{ background: 'var(--bg)', border: '2px solid var(--border)', boxShadow: '4px 4px 0 var(--shadow)',
                     maxHeight: '90vh', overflowY: 'auto' }}
            onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between p-4 sm:p-5" style={{ borderBottom: '1.5px solid #2a1f15' }}>
+        <div className="flex items-start justify-between p-4 sm:p-5" style={{ borderBottom: '1.5px solid var(--border)' }}>
           <div className="min-w-0">
             <h3 className="text-xl font-bold leading-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h3>
-            {subtitle && <p className="mono text-xs mt-1 tracking-wide" style={{ color: '#7a5f3f' }}>{subtitle}</p>}
+            {subtitle && <p className="mono text-xs mt-1 tracking-wide" style={{ color: 'var(--sub)' }}>{subtitle}</p>}
           </div>
           <button onClick={onClose} className="flex-shrink-0 p-1 hover:bg-black/5" aria-label="Close">
             <X size={18} />
@@ -656,9 +718,9 @@ function DatePickerModal({ task, onClose, onConfirm }) {
           return (
             <button key={p.label} onClick={() => setDate(iso)}
               className="px-3 py-2.5 text-sm transition-transform"
-              style={{ background: active ? '#2a1f15' : '#ebe0c9',
-                       color: active ? '#f4ede0' : '#2a1f15',
-                       border: '1.5px solid #2a1f15',
+              style={{ background: active ? 'var(--selected-bg)' : 'var(--bg-2)',
+                       color: active ? 'var(--selected-fg)' : 'var(--text)',
+                       border: '1.5px solid var(--border)',
                        boxShadow: active ? '3px 3px 0 #2a1f15' : '1px 1px 0 #2a1f15' }}>
               <div className="font-semibold">{p.label}</div>
               <div className="mono text-[10px] opacity-80">{formatDate(iso)}</div>
@@ -668,18 +730,18 @@ function DatePickerModal({ task, onClose, onConfirm }) {
       </div>
 
       <label className="block mb-4">
-        <span className="mono text-xs uppercase tracking-widest" style={{ color: '#7a5f3f' }}>Or pick a date</span>
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: 'var(--sub)' }}>Or pick a date</span>
         <input type="date" value={date} max={todayISO()}
           onChange={(e) => setDate(e.target.value)}
           className="mono w-full mt-1 px-3 py-2.5 text-base"
-          style={{ background: '#fff', border: '1.5px solid #2a1f15' }} />
+          style={{ background: 'var(--bg-3)', border: '1.5px solid var(--border)' }} />
       </label>
 
       <div className="flex gap-2">
         <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-semibold"
-          style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>Cancel</button>
+          style={{ background: 'var(--bg-2)', border: '1.5px solid var(--border)' }}>Cancel</button>
         <button onClick={() => onConfirm(date)} className="flex-1 px-4 py-2.5 text-sm font-semibold"
-          style={{ background: '#7a8b5c', color: '#f4ede0', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+          style={{ background: '#7a8b5c', color: 'var(--selected-fg)', border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--shadow)' }}>
           Log it
         </button>
       </div>
@@ -696,20 +758,20 @@ function HistoryModal({ task, onClose, onRemove, onAdd }) {
     <ModalShell onClose={onClose} title={task.label}
       subtitle={`${task.group.toUpperCase()} · ${dates.length} completion${dates.length === 1 ? '' : 's'} logged`}>
       {dates.length === 0 && (
-        <div className="text-center py-6 mono text-sm" style={{ color: '#7a5f3f' }}>No completions logged yet.</div>
+        <div className="text-center py-6 mono text-sm" style={{ color: 'var(--sub)' }}>No completions logged yet.</div>
       )}
 
       {dates.length > 0 && (
         <div className="space-y-1.5 mb-4 max-h-64 overflow-y-auto">
           {dates.map((iso, i) => (
             <div key={iso} className="flex items-center justify-between px-3 py-2"
-              style={{ background: i === 0 ? '#eef0e3' : '#ebe0c9', border: '1px solid #2a1f15' }}>
+              style={{ background: i === 0 ? 'var(--fresh-bg)' : 'var(--bg-2)', border: '1px solid var(--border)' }}>
               <div>
                 <div className="font-semibold text-sm">{formatDateLong(iso)}</div>
-                {i === 0 && <div className="mono text-[10px] uppercase tracking-widest" style={{ color: '#5e6e44' }}>Most recent</div>}
+                {i === 0 && <div className="mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--fresh-fg)' }}>Most recent</div>}
               </div>
               <button onClick={() => onRemove(iso)} className="p-1.5 hover:bg-black/5"
-                style={{ color: '#c44536' }} aria-label="Delete this entry" title="Delete this entry">
+                style={{ color: 'var(--over-fg)' }} aria-label="Delete this entry" title="Delete this entry">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -719,7 +781,7 @@ function HistoryModal({ task, onClose, onRemove, onAdd }) {
 
       {!showAdd && (
         <button onClick={() => setShowAdd(true)} className="w-full px-4 py-2.5 text-sm font-semibold"
-          style={{ background: '#ebe0c9', border: '1.5px dashed #2a1f15' }}>
+          style={{ background: 'var(--bg-2)', border: '1.5px dashed var(--border)' }}>
           + Add a missed date
         </button>
       )}
@@ -734,19 +796,19 @@ function HistoryModal({ task, onClose, onRemove, onAdd }) {
 function AddDateInline({ onCancel, onConfirm }) {
   const [date, setDate] = useState(todayISO());
   return (
-    <div className="p-3" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15' }}>
+    <div className="p-3" style={{ background: 'var(--bg-2)', border: '1.5px solid var(--border)' }}>
       <label className="block mb-3">
-        <span className="mono text-xs uppercase tracking-widest" style={{ color: '#7a5f3f' }}>Date completed</span>
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: 'var(--sub)' }}>Date completed</span>
         <input type="date" value={date} max={todayISO()}
           onChange={(e) => setDate(e.target.value)}
           className="mono w-full mt-1 px-3 py-2 text-base"
-          style={{ background: '#fff', border: '1.5px solid #2a1f15' }} />
+          style={{ background: 'var(--bg-3)', border: '1.5px solid var(--border)' }} />
       </label>
       <div className="flex gap-2">
         <button onClick={onCancel} className="flex-1 px-3 py-2 text-sm"
-          style={{ background: '#f4ede0', border: '1.5px solid #2a1f15' }}>Cancel</button>
+          style={{ background: 'var(--bg)', border: '1.5px solid var(--border)' }}>Cancel</button>
         <button onClick={() => onConfirm(date)} className="flex-1 px-3 py-2 text-sm font-semibold"
-          style={{ background: '#7a8b5c', color: '#f4ede0', border: '1.5px solid #2a1f15' }}>Add</button>
+          style={{ background: '#7a8b5c', color: 'var(--selected-fg)', border: '1.5px solid var(--border)' }}>Add</button>
       </div>
     </div>
   );
@@ -790,20 +852,20 @@ function CalendarView({ month, setMonth, dateIndex, tasks, selectedDate, setSele
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid #2a1f15' }} aria-label="Previous month">
+        <button onClick={prevMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid var(--border)' }} aria-label="Previous month">
           <ChevronLeft size={16} />
         </button>
         <h2 className="text-2xl font-bold tracking-tight" style={{ letterSpacing: '-0.02em' }}>{monthName}</h2>
-        <button onClick={nextMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid #2a1f15' }} aria-label="Next month">
+        <button onClick={nextMonth} className="p-2 hover:bg-black/5" style={{ border: '1.5px solid var(--border)' }} aria-label="Next month">
           <ChevronRight size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 mb-1 mono text-[10px] uppercase tracking-widest text-center" style={{ color: '#7a5f3f' }}>
+      <div className="grid grid-cols-7 mb-1 mono text-[10px] uppercase tracking-widest text-center" style={{ color: 'var(--sub)' }}>
         {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => <div key={d} className="py-1">{d}</div>)}
       </div>
 
-      <div className="grid grid-cols-7 gap-1" style={{ border: '1.5px solid #2a1f15', padding: 4, background: '#ebe0c9' }}>
+      <div className="grid grid-cols-7 gap-1" style={{ border: '1.5px solid var(--border)', padding: 4, background: 'var(--bg-2)' }}>
         {cells.map((cell, i) => {
           if (!cell) return <div key={i} style={{ aspectRatio: '1 / 1' }} />;
           const entries = dateIndex[cell.iso] || [];
@@ -815,13 +877,13 @@ function CalendarView({ month, setMonth, dateIndex, tasks, selectedDate, setSele
             <button key={i} onClick={() => setSelectedDate(isSelected ? null : cell.iso)}
               className="relative flex flex-col items-stretch justify-between p-1 text-left transition-transform hover:scale-[1.05]"
               style={{ aspectRatio: '1 / 1',
-                       background: isSelected ? '#2a1f15' : isToday ? '#faf0d8' : '#f4ede0',
-                       color: isSelected ? '#f4ede0' : '#2a1f15',
-                       border: `1px solid ${isToday && !isSelected ? '#a87a2c' : '#2a1f15'}` }}>
+                       background: isSelected ? 'var(--selected-bg)' : isToday ? 'var(--due-bg)' : 'var(--bg)',
+                       color: isSelected ? 'var(--selected-fg)' : 'var(--text)',
+                       border: `1px solid ${isToday && !isSelected ? 'var(--due-fg)' : 'var(--border)'}` }}>
               <div className="flex items-start justify-between">
                 <span className="mono text-[11px] font-semibold leading-none">{cell.d}</span>
                 {entries.length > 0 && (
-                  <span className="mono text-[9px] font-bold" style={{ color: isSelected ? '#f4ede0' : '#7a5f3f' }}>
+                  <span className="mono text-[9px] font-bold" style={{ color: isSelected ? 'var(--selected-fg)' : 'var(--sub)' }}>
                     {entries.length}
                   </span>
                 )}
@@ -837,7 +899,7 @@ function CalendarView({ month, setMonth, dateIndex, tasks, selectedDate, setSele
         })}
       </div>
 
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 mono text-[10px] uppercase tracking-widest" style={{ color: '#7a5f3f' }}>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 mono text-[10px] uppercase tracking-widest" style={{ color: 'var(--sub)' }}>
         {GROUP_ORDER.map((g) => (
           <div key={g} className="flex items-center gap-1.5">
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_META[g].color, display: 'inline-block' }} />
@@ -847,31 +909,31 @@ function CalendarView({ month, setMonth, dateIndex, tasks, selectedDate, setSele
       </div>
 
       {selectedDate && (
-        <div className="mt-5 p-4 fadein" style={{ background: '#ebe0c9', border: '1.5px solid #2a1f15', boxShadow: '2px 2px 0 #2a1f15' }}>
+        <div className="mt-5 p-4 fadein" style={{ background: 'var(--bg-2)', border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--shadow)' }}>
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="text-lg font-bold" style={{ letterSpacing: '-0.02em' }}>{formatDateLong(selectedDate)}</h3>
-            <span className="mono text-xs" style={{ color: '#7a5f3f' }}>{selectedEntries.length} logged</span>
+            <span className="mono text-xs" style={{ color: 'var(--sub)' }}>{selectedEntries.length} logged</span>
           </div>
 
           {selectedEntries.length === 0 && (
-            <p className="text-sm italic" style={{ color: '#7a5f3f' }}>Nothing logged on this day.</p>
+            <p className="text-sm italic" style={{ color: 'var(--sub)' }}>Nothing logged on this day.</p>
           )}
 
           {selectedEntries.length > 0 && (
             <ul className="space-y-1.5">
               {selectedEntries.map((t) => (
                 <li key={t.id} className="flex items-center justify-between px-3 py-2"
-                  style={{ background: '#f4ede0', border: '1px solid #2a1f15' }}>
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
                   <div className="flex items-center gap-2 min-w-0">
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_META[t.group].color, flexShrink: 0 }} />
                     <span className="text-sm truncate">
                       <span className="font-semibold">{t.label}</span>
-                      <span className="italic" style={{ color: '#7a5f3f' }}> · {t.group}</span>
+                      <span className="italic" style={{ color: 'var(--sub)' }}> · {t.group}</span>
                     </span>
                   </div>
                   <button onClick={() => onRemoveEntry(t.id, selectedDate)}
                     className="p-1.5 hover:bg-black/5 flex-shrink-0"
-                    style={{ color: '#c44536' }}
+                    style={{ color: 'var(--over-fg)' }}
                     aria-label="Remove entry" title="Remove entry">
                     <Trash2 size={13} />
                   </button>
