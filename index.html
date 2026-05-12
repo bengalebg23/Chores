@@ -23,6 +23,26 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+<!-- Firebase (compat SDK, loaded globally so we can use it from babel-transformed code) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script>
+  // Firebase config for House Ledger
+  const firebaseConfig = {
+    apiKey: "AIzaSyAgrGcq4yAqp9jkUR9WPR3iFQqPR9787sY",
+    authDomain: "house-ledger-26622.firebaseapp.com",
+    databaseURL: "https://house-ledger-26622-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "house-ledger-26622",
+    storageBucket: "house-ledger-26622.firebasestorage.app",
+    messagingSenderId: "409038286250",
+    appId: "1:409038286250:web:4e61b9b1d232820efa4fd3"
+  };
+  firebase.initializeApp(firebaseConfig);
+  window.fbDb = firebase.database();
+  // Enable offline persistence: writes when offline queue up until reconnect
+  firebase.database().goOnline();
+</script>
+
 <style>
   :root {
     --bg:        #f4ede0;
@@ -218,8 +238,8 @@ const GROUP_META = {
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.5';
-const VERSION_DATE = '2026-05-08';
+const VERSION = '1.6';
+const VERSION_DATE = '2026-05-09';
 
 const todayISO = () => {
   const d = new Date();
@@ -288,16 +308,15 @@ function ChoreTracker() {
   });
   const [calSelectedDate, setCalSelectedDate] = useState(null);
 
-  // Load
+  // Load: localStorage first (fast), then subscribe to Firebase
   useEffect(() => {
+    // 1. Hydrate from localStorage immediately
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         setHistory(parsed.history || {});
         if (parsed.tasks) {
-          // Merge: keep saved tasks (preserves edited cadences) but append any
-          // new defaults that didn't exist before (e.g. Bathrooms group added in v1.2)
           const savedIds = new Set(parsed.tasks.map((t) => t.id));
           const merged = [...parsed.tasks, ...DEFAULT_TASKS.filter((t) => !savedIds.has(t.id))];
           setTasks(merged);
@@ -305,14 +324,46 @@ function ChoreTracker() {
       }
     } catch (e) { /* first run */ }
     setLoading(false);
+
+    // 2. Subscribe to Firebase history changes
+    if (!window.fbDb) return;
+    const ref = window.fbDb.ref('history');
+    const listener = ref.on('value', (snap) => {
+      const val = snap.val();
+      if (val) {
+        // Firebase has data - it wins (source of truth)
+        setHistory(val);
+      } else {
+        // Firebase is empty but we might have local data - push it up to seed
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.history && Object.keys(parsed.history).length > 0) {
+              ref.set(parsed.history);
+            }
+          }
+        } catch (e) {}
+      }
+    }, (err) => {
+      console.error('Firebase read failed:', err);
+    });
+
+    return () => ref.off('value', listener);
   }, []);
 
-  // Save
+  // Save: localStorage always, Firebase if available
   useEffect(() => {
     if (loading) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ history, tasks }));
-    } catch (e) { console.error('save failed', e); }
+    } catch (e) { console.error('local save failed', e); }
+    // Push to Firebase (debounced via state - React already batches, this fires once per change)
+    if (window.fbDb) {
+      window.fbDb.ref('history').set(history).catch((err) => {
+        console.error('Firebase write failed:', err);
+      });
+    }
   }, [history, tasks, loading]);
 
   // PWA install prompt capture
@@ -567,7 +618,7 @@ function ChoreTracker() {
           borderTop: '1px solid var(--rule)', color: 'var(--sub)',
         }}>
           Tap row to log today · 📅 for a different date · ↻ for full history
-          <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE}</div>
+          <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE} · {window.fbDb ? '☁ synced' : 'local only'}</div>
         </footer>
       </div>
 

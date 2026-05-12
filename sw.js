@@ -1,6 +1,6 @@
 // Service worker for The House Ledger
 // Bump CACHE_VERSION on every release to force clients to fetch fresh assets.
-const CACHE_VERSION = 'v1.5';
+const CACHE_VERSION = 'v1.6';
 const CACHE_NAME = `house-ledger-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
