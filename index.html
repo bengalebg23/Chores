@@ -174,6 +174,7 @@ const ChevronRight = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>}
 const Sun = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>} />;
 const Moon = (p) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>} />;
 const Trash2 = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>} />;
+const Plus = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
 const Download = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
 const Upload = (p) => <Icon {...p} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>} />;
 
@@ -238,7 +239,7 @@ const GROUP_META = {
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.6';
+const VERSION = '1.7';
 const VERSION_DATE = '2026-05-09';
 
 const todayISO = () => {
@@ -301,6 +302,7 @@ function ChoreTracker() {
 
   const [logTask, setLogTask] = useState(null);
   const [historyTask, setHistoryTask] = useState(null);
+  const [showAddChore, setShowAddChore] = useState(false);
 
   const [calMonth, setCalMonth] = useState(() => {
     const d = new Date();
@@ -327,29 +329,49 @@ function ChoreTracker() {
 
     // 2. Subscribe to Firebase history changes
     if (!window.fbDb) return;
-    const ref = window.fbDb.ref('history');
-    const listener = ref.on('value', (snap) => {
+    const historyRef = window.fbDb.ref('history');
+    const historyListener = historyRef.on('value', (snap) => {
       const val = snap.val();
       if (val) {
-        // Firebase has data - it wins (source of truth)
         setHistory(val);
       } else {
-        // Firebase is empty but we might have local data - push it up to seed
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed.history && Object.keys(parsed.history).length > 0) {
-              ref.set(parsed.history);
+              historyRef.set(parsed.history);
             }
           }
         } catch (e) {}
       }
     }, (err) => {
-      console.error('Firebase read failed:', err);
+      console.error('Firebase history read failed:', err);
     });
 
-    return () => ref.off('value', listener);
+    // 3. Subscribe to Firebase customTasks - merge into local task list
+    const customTasksRef = window.fbDb.ref('customTasks');
+    const customListener = customTasksRef.on('value', (snap) => {
+      const val = snap.val();
+      const remoteCustoms = val ? Object.values(val) : [];
+      setTasks((current) => {
+        // Keep defaults + any local-only customs (shouldn't really exist long, since we push immediately)
+        // Then layer remote customs on top
+        const remoteIds = new Set(remoteCustoms.map((t) => t.id));
+        const withoutRemoteCustoms = current.filter((t) => !remoteIds.has(t.id));
+        // Add remote customs that aren't already in the list
+        const existingIds = new Set(withoutRemoteCustoms.map((t) => t.id));
+        const newCustoms = remoteCustoms.filter((t) => !existingIds.has(t.id));
+        return [...withoutRemoteCustoms, ...newCustoms];
+      });
+    }, (err) => {
+      console.error('Firebase customTasks read failed:', err);
+    });
+
+    return () => {
+      historyRef.off('value', historyListener);
+      customTasksRef.off('value', customListener);
+    };
   }, []);
 
   // Save: localStorage always, Firebase if available
@@ -397,6 +419,31 @@ function ChoreTracker() {
   };
   const updateCadence = (taskId, newCadence) => {
     setTasks((ts) => ts.map((t) => (t.id === taskId ? { ...t, cadence: newCadence } : t)));
+  };
+
+  const addCustomChore = ({ label, group, cadence }) => {
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const newTask = { id, label, group, cadence, custom: true };
+    setTasks((ts) => [...ts, newTask]);
+    // Also push to Firebase /customTasks so other devices see it
+    if (window.fbDb) {
+      window.fbDb.ref('customTasks/' + id).set(newTask).catch((err) => {
+        console.error('Failed to sync custom chore:', err);
+      });
+    }
+  };
+
+  const removeCustomChore = (taskId) => {
+    setTasks((ts) => ts.filter((t) => t.id !== taskId));
+    // Also remove its history
+    setHistory((h) => {
+      const next = { ...h };
+      delete next[taskId];
+      return next;
+    });
+    if (window.fbDb) {
+      window.fbDb.ref('customTasks/' + taskId).remove();
+    }
   };
 
   const exportData = () => {
@@ -499,6 +546,9 @@ function ChoreTracker() {
           <p className="mono text-xs mt-3 tracking-wide" style={{ color: 'var(--sub)' }}>
             A record of household chores · kept faithfully
           </p>
+          <p className="mono text-[10px] mt-1 tracking-widest uppercase" style={{ color: 'var(--sub)', opacity: 0.6 }}>
+            v{VERSION} · {VERSION_DATE} · {typeof window !== 'undefined' && window.fbDb ? '☁ synced' : 'local only'}
+          </p>
         </header>
 
         {showInstall && installPrompt && (
@@ -535,6 +585,9 @@ function ChoreTracker() {
             <div className="flex items-center justify-between mb-6 mono text-xs uppercase tracking-widest gap-3">
               <span style={{ color: 'var(--sub)' }}>{filtered.length} of {counts.total}</span>
               <div className="flex items-center gap-3">
+                <button onClick={() => setShowAddChore(true)} className="hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--text)' }} title="Add new chore" aria-label="Add new chore">
+                  <Plus size={12} /> add
+                </button>
                 <button onClick={() => setShowSettings((s) => !s)} className="underline underline-offset-4 hover:no-underline" style={{ color: 'var(--text)' }}>
                   {showSettings ? 'close' : 'cadences'}
                 </button>
@@ -588,6 +641,7 @@ function ChoreTracker() {
                         onQuickDone={() => addEntry(task.id, todayISO())}
                         onPickDate={() => setLogTask(task)}
                         onOpenHistory={() => setHistoryTask(task)}
+                        onDelete={task.custom ? () => removeCustomChore(task.id) : null}
                       />
                     ))}
                   </div>
@@ -618,7 +672,6 @@ function ChoreTracker() {
           borderTop: '1px solid var(--rule)', color: 'var(--sub)',
         }}>
           Tap row to log today · 📅 for a different date · ↻ for full history
-          <div className="mt-2 opacity-70">v{VERSION} · {VERSION_DATE} · {window.fbDb ? '☁ synced' : 'local only'}</div>
         </footer>
       </div>
 
@@ -632,7 +685,74 @@ function ChoreTracker() {
           onRemove={(iso) => removeEntry(historyTask.id, iso)}
           onAdd={(iso) => addEntry(historyTask.id, iso)} />
       )}
+
+      {showAddChore && (
+        <AddChoreModal
+          onClose={() => setShowAddChore(false)}
+          onConfirm={(payload) => { addCustomChore(payload); setShowAddChore(false); }}
+        />
+      )}
     </div>
+  );
+}
+
+function AddChoreModal({ onClose, onConfirm }) {
+  const [label, setLabel] = useState('');
+  const [group, setGroup] = useState('Misc');
+  const [cadence, setCadence] = useState(14);
+
+  const canSubmit = label.trim().length > 0 && cadence >= 1;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    onConfirm({ label: label.trim(), group, cadence: parseInt(cadence) || 14 });
+  };
+
+  return (
+    <ModalShell onClose={onClose} title="Add new chore" subtitle="Custom · syncs across devices">
+      <label className="block mb-3">
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: 'var(--sub)' }}>Name</span>
+        <input type="text" value={label} autoFocus
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. Wipe down skirting boards"
+          className="w-full mt-1 px-3 py-2.5 text-base"
+          style={{ background: 'var(--bg-3)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+      </label>
+
+      <label className="block mb-3">
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: 'var(--sub)' }}>Group</span>
+        <select value={group} onChange={(e) => setGroup(e.target.value)}
+          className="mono w-full mt-1 px-3 py-2.5 text-base"
+          style={{ background: 'var(--bg-3)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
+          {GROUP_ORDER.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="block mb-4">
+        <span className="mono text-xs uppercase tracking-widest" style={{ color: 'var(--sub)' }}>Cadence (days)</span>
+        <input type="number" min="1" max="365" value={cadence}
+          onChange={(e) => setCadence(e.target.value)}
+          className="mono w-full mt-1 px-3 py-2.5 text-base"
+          style={{ background: 'var(--bg-3)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+        <span className="mono text-[10px] mt-1 block" style={{ color: 'var(--sub)' }}>
+          7 = weekly · 14 = fortnightly · 28 = monthly
+        </span>
+      </label>
+
+      <div className="flex gap-2">
+        <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-semibold"
+          style={{ background: 'var(--bg-2)', border: '1.5px solid var(--border)', color: 'var(--text)' }}>
+          Cancel
+        </button>
+        <button onClick={handleSubmit} disabled={!canSubmit}
+          className="flex-1 px-4 py-2.5 text-sm font-semibold transition-opacity"
+          style={{ background: '#7a8b5c', color: '#f4ede0', border: '1.5px solid var(--border)', boxShadow: '2px 2px 0 var(--shadow)', opacity: canSubmit ? 1 : 0.5 }}>
+          Add chore
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -664,7 +784,7 @@ function StatCard({ tone, label, value, active, onClick }) {
   );
 }
 
-function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
+function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory, onDelete }) {
   const [justDone, setJustDone] = useState(false);
   const { status, lastDone, cadence } = task;
 
@@ -724,6 +844,16 @@ function TaskRow({ task, onQuickDone, onPickDate, onOpenHistory }) {
         aria-label="View history" title="View history">
         <RotateCcw size={14} />
       </button>
+      {task.custom && onDelete && (
+        <button onClick={() => {
+          if (confirm(`Delete "${task.label}"? This removes the chore and all its history.`)) onDelete();
+        }}
+          className="px-3 flex items-center justify-center hover:bg-black/5 transition-colors"
+          style={{ borderLeft: '1.5px solid var(--border)', color: 'var(--over-fg)' }}
+          aria-label="Delete custom chore" title="Delete custom chore">
+          <Trash2 size={14} />
+        </button>
+      )}
     </div>
   );
 }
