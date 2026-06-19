@@ -1,4 +1,24 @@
-# House Ledger — Handoff
+#!/data/data/com.termux/files/usr/bin/bash
+# v1.10_handoff_stale_fetch_fix.sh
+# House Ledger — replace HANDOFF.md with v1.10 version.
+# Documents the cross-chat stale-fetch issue (resolved by procedural fix,
+# not a code fix) and hardens the resume-prompt boilerplate.
+# Run from ~/Chores
+
+set -e
+
+if [ ! -f HANDOFF.md ]; then
+  echo "ERROR: HANDOFF.md not found. Run this from ~/Chores." >&2
+  exit 1
+fi
+
+CURRENT_VERSION=$(grep -m1 "Current version:" HANDOFF.md || true)
+echo "Pre-patch HANDOFF.md version line: $CURRENT_VERSION"
+
+python3 << 'PYEOF'
+import pathlib
+
+content = '''# House Ledger — Handoff
 
 A family household-chores PWA. Single-file `index.html` served from GitHub Pages, with localStorage + Firebase Realtime Database for persistence. Built around an existing paper-spreadsheet chore tracker (`Chores.pdf`) used by the Gale family at 17 Melody Drive, Sileby.
 
@@ -135,7 +155,7 @@ Single-file PWAs that load deps from CDN are exposed to **silent supply-chain br
 
 Check pin status with:
 ```bash
-grep -E "unpkg.com|cdn\." ~/Chores/index.html
+grep -E "unpkg.com|cdn\\." ~/Chores/index.html
 ```
 
 Every URL should have an `@version` or `/X.Y.Z` segment.
@@ -209,3 +229,14 @@ retry the fetch — ask me to run `git log --oneline -5` and paste
 
 [What I want to change today: ...]
 ```
+'''
+
+pathlib.Path("HANDOFF.md").write_text(content, encoding="utf-8")
+print("HANDOFF.md rewritten -> v1.10")
+PYEOF
+
+echo ""
+echo "Patch applied. Next steps:"
+echo "  sed -i \"s/const CACHE_VERSION = .*/const CACHE_VERSION = 'v1.10';/\" sw.js"
+echo "  # (only if index.html has VERSION/VERSION_DATE constants to bump too — check with: grep -n VERSION index.html)"
+echo "  ct 1.10"
