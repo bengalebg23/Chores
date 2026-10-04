@@ -4,7 +4,7 @@ A family household-chores PWA. Single-file `index.html` served from GitHub Pages
 
 **Live app:** https://bengalebg23.github.io/Chores/
 **Repo:** https://github.com/bengalebg23/Chores
-**Current version:** v1.10 (2026-06-19)
+**Current version:** v1.11 (2026-10-04)
 **Branch:** `main` (no dev/staging split — push straight to live)
 
 ---
@@ -117,6 +117,8 @@ The SW change is what forces installed PWAs to reload.
 - **v1.9** — Pinned remaining CDN deps (React 18.3.1, ReactDOM 18.3.1; Firebase was already pinned).
 - **v1.10** — Hardened the cross-chat resume workflow after a Claude session served stale cached copies of `HANDOFF.md` / `index.html` from `raw.githubusercontent.com` and then refused direct re-fetch attempts (SHA-pinned URL, jsDelivr) as "not in prior search results." No repo-side cause — confirmed `git log`/`git remote -v` clean, `main` correctly at `origin/main`. Added a stale-fetch fallback instruction to the resume prompt (below) so this degrades gracefully instead of burning a whole chat on confused troubleshooting.
 
+- **v1.11** — Removed the Misc group and its default "Miscellaneous" chore. Retired default IDs (`RETIRED_TASK_IDS`) are now stripped from saved localStorage tasks on load, since localStorage stores defaults too. Add-chore modal defaults to the first group. Any custom chore left in a group not in `GROUP_ORDER` still renders at the bottom rather than disappearing.
+
 ---
 
 ## Known gotchas
@@ -197,7 +199,7 @@ Please fetch:
 - https://raw.githubusercontent.com/bengalebg23/Chores/main/HANDOFF.md
 - https://raw.githubusercontent.com/bengalebg23/Chores/main/index.html
 
-Current version: v1.10
+Current version: v1.11
 Workflow: patches via Python heredoc, applied in Termux, pushed via `ct X.Y` alias.
 NEVER deliver downloaded HTML files — always patches.
 All files version-stamped in filename.

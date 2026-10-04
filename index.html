@@ -225,22 +225,22 @@ const DEFAULT_TASKS = [
   { id: 'ba-up-floor',   group: 'Bathrooms', label: 'Upper · Floors',  cadence: 7  },
   { id: 'ba-up-shower',  group: 'Bathrooms', label: 'Upper · Shower',  cadence: 14 },
 
-  { id: 'mi-misc',       group: 'Misc', label: 'Miscellaneous', cadence: 14 },
 ];
 
-const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Bathrooms', 'Grooming', 'Misc'];
+const GROUP_ORDER = ['Bed Change', 'Hoover', 'Dusting', 'Bathrooms', 'Grooming'];
+// Default task IDs removed in later versions — stripped from saved localStorage tasks on load.
+const RETIRED_TASK_IDS = new Set(['mi-misc']);
 const GROUP_META = {
   'Bed Change': { tag: '01', sub: 'sheets & linen', color: '#8b5a3c' },
   'Hoover':     { tag: '02', sub: 'floors',         color: 'var(--fresh-fg)' },
   'Dusting':    { tag: '03', sub: 'surfaces',       color: 'var(--due-fg)' },
   'Bathrooms':  { tag: '04', sub: 'wet rooms',      color: '#3e7a8a' },
   'Grooming':   { tag: '05', sub: 'nails',          color: '#7d5a8a' },
-  'Misc':       { tag: '06', sub: 'other',          color: '#6b6b6b' },
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.9';
-const VERSION_DATE = '2026-06-19';
+const VERSION = '1.11';
+const VERSION_DATE = '2026-10-04';
 
 const todayISO = () => {
   const d = new Date();
@@ -319,8 +319,9 @@ function ChoreTracker() {
         const parsed = JSON.parse(raw);
         setHistory(parsed.history || {});
         if (parsed.tasks) {
-          const savedIds = new Set(parsed.tasks.map((t) => t.id));
-          const merged = [...parsed.tasks, ...DEFAULT_TASKS.filter((t) => !savedIds.has(t.id))];
+          const savedTasks = parsed.tasks.filter((t) => !RETIRED_TASK_IDS.has(t.id));
+          const savedIds = new Set(savedTasks.map((t) => t.id));
+          const merged = [...savedTasks, ...DEFAULT_TASKS.filter((t) => !savedIds.has(t.id))];
           setTasks(merged);
         }
       }
@@ -623,10 +624,10 @@ function ChoreTracker() {
 
             {loading && (<div className="text-center py-12 mono text-sm" style={{ color: 'var(--sub)' }}>Opening the ledger…</div>)}
 
-            {!loading && GROUP_ORDER.map((groupName) => {
+            {!loading && [...GROUP_ORDER, ...Object.keys(grouped).filter((g) => !GROUP_ORDER.includes(g))].map((groupName) => {
               const items = grouped[groupName];
               if (!items || items.length === 0) return null;
-              const meta = GROUP_META[groupName];
+              const meta = GROUP_META[groupName] || { tag: '··', sub: 'other', color: '#6b6b6b' };
               return (
                 <section key={groupName} className="mb-8">
                   <div className="flex items-baseline gap-3 mb-3">
@@ -698,7 +699,7 @@ function ChoreTracker() {
 
 function AddChoreModal({ onClose, onConfirm }) {
   const [label, setLabel] = useState('');
-  const [group, setGroup] = useState('Misc');
+  const [group, setGroup] = useState(GROUP_ORDER[0]);
   const [cadence, setCadence] = useState(14);
 
   const canSubmit = label.trim().length > 0 && cadence >= 1;
