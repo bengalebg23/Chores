@@ -155,7 +155,7 @@
 </script>
 
 <script type="text/babel" data-presets="env,react">
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
 // Inline lucide-style icons as small SVG components (no external icon lib needed)
 const Icon = ({ d, size = 14, strokeWidth = 2 }) => (
@@ -239,8 +239,21 @@ const GROUP_META = {
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.11';
-const VERSION_DATE = '2026-10-04';
+const VERSION = '1.12';
+const VERSION_DATE = '2026-10-31';
+
+// v1.12 sync helpers. History is { taskId: [isoDate, ...] }; merging = union of dates.
+const mergeHistory = (a, b) => {
+  const out = {};
+  [a || {}, b || {}].forEach((h) => Object.keys(h).forEach((k) => {
+    const arr = Array.isArray(h[k]) ? h[k] : Object.values(h[k] || {});
+    out[k] = Array.from(new Set([...(out[k] || []), ...arr])).sort();
+  }));
+  Object.keys(out).forEach((k) => { if (!out[k].length) delete out[k]; });
+  return out;
+};
+const sameJSON = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
+const countEntries = (h) => Object.values(h || {}).reduce((n, arr) => n + (arr ? arr.length : 0), 0);
 
 const todayISO = () => {
   const d = new Date();
@@ -310,14 +323,24 @@ function ChoreTracker() {
   });
   const [calSelectedDate, setCalSelectedDate] = useState(null);
 
+  // Sync state. NOTHING is written to Firebase until the cloud copy has been
+  // read once (fbReady) — v1.11 wrote the phone's copy on launch, so a phone
+  // with cleared data wiped the cloud history.
+  const fbReady = useRef(false);
+  const lastRemote = useRef(null);
+  const [syncState, setSyncState] = useState('connecting'); // connecting | ok | offline | error
+  const [syncError, setSyncError] = useState('');
+  const fail = (err) => { setSyncError(String((err && err.message) || err)); setSyncState('error'); };
+
   // Load: localStorage first (fast), then subscribe to Firebase
   useEffect(() => {
-    // 1. Hydrate from localStorage immediately
+    let localHistory = {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        setHistory(parsed.history || {});
+        localHistory = parsed.history || {};
+        setHistory(localHistory);
         if (parsed.tasks) {
           const savedTasks = parsed.tasks.filter((t) => !RETIRED_TASK_IDS.has(t.id));
           const savedIds = new Set(savedTasks.map((t) => t.id));
@@ -328,50 +351,64 @@ function ChoreTracker() {
     } catch (e) { /* first run */ }
     setLoading(false);
 
-    // 2. Subscribe to Firebase history changes
-    if (!window.fbDb) return;
-    const historyRef = window.fbDb.ref('history');
-    const historyListener = historyRef.on('value', (snap) => {
-      const val = snap.val();
-      if (val) {
-        setHistory(val);
-      } else {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.history && Object.keys(parsed.history).length > 0) {
-              historyRef.set(parsed.history);
-            }
-          }
-        } catch (e) {}
-      }
-    }, (err) => {
-      console.error('Firebase history read failed:', err);
+    if (!window.fbDb) { setSyncState('offline'); return; }
+    const db = window.fbDb;
+
+    const connRef = db.ref('.info/connected');
+    const connListener = connRef.on('value', (s) => {
+      setSyncState((cur) => (cur === 'error' ? cur : (s.val() ? (fbReady.current ? 'ok' : 'connecting') : 'offline')));
     });
 
-    // 3. Subscribe to Firebase customTasks - merge into local task list
-    const customTasksRef = window.fbDb.ref('customTasks');
+    const historyRef = db.ref('history');
+    const historyListener = historyRef.on('value', (snap) => {
+      const remote = snap.val() || {};
+      if (!fbReady.current) {
+        fbReady.current = true; // set first: the writes below can re-trigger this listener
+        // First read: never throw anything away — union of this phone and the cloud.
+        const merged = mergeHistory(remote, localHistory);
+        lastRemote.current = merged;
+        if (countEntries(localHistory) && !sameJSON(mergeHistory(localHistory, {}), mergeHistory(remote, {}))) {
+          db.ref('backups/first-sync-' + Date.now()).set({ t: Date.now(), ua: navigator.userAgent.slice(0, 120), history: localHistory }).catch(() => {});
+        }
+        setHistory(merged);
+        if (!sameJSON(merged, remote)) historyRef.set(merged).catch(fail);
+        // One full copy a day
+        db.ref('backups/daily/' + todayISO()).once('value').then((s) => {
+          if (!s.exists() && countEntries(merged)) return db.ref('backups/daily/' + todayISO()).set({ t: Date.now(), history: merged });
+        }).catch(() => {});
+        setSyncState('ok');
+        return;
+      }
+      lastRemote.current = remote;
+      setHistory(remote);
+    }, fail);
+
+    // Custom chores - merge into local task list
+    const customTasksRef = db.ref('customTasks');
     const customListener = customTasksRef.on('value', (snap) => {
       const val = snap.val();
       const remoteCustoms = val ? Object.values(val) : [];
       setTasks((current) => {
-        // Keep defaults + any local-only customs (shouldn't really exist long, since we push immediately)
-        // Then layer remote customs on top
         const remoteIds = new Set(remoteCustoms.map((t) => t.id));
         const withoutRemoteCustoms = current.filter((t) => !remoteIds.has(t.id));
-        // Add remote customs that aren't already in the list
         const existingIds = new Set(withoutRemoteCustoms.map((t) => t.id));
         const newCustoms = remoteCustoms.filter((t) => !existingIds.has(t.id));
         return [...withoutRemoteCustoms, ...newCustoms];
       });
-    }, (err) => {
-      console.error('Firebase customTasks read failed:', err);
-    });
+    }, fail);
+
+    // How-often changes (any chore, built-in or custom)
+    const cadenceRef = db.ref('cadence');
+    const cadenceListener = cadenceRef.on('value', (snap) => {
+      const val = snap.val() || {};
+      setTasks((ts) => ts.map((t) => (val[t.id] != null && val[t.id] !== t.cadence ? { ...t, cadence: val[t.id] } : t)));
+    }, fail);
 
     return () => {
+      connRef.off('value', connListener);
       historyRef.off('value', historyListener);
       customTasksRef.off('value', customListener);
+      cadenceRef.off('value', cadenceListener);
     };
   }, []);
 
@@ -381,11 +418,10 @@ function ChoreTracker() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ history, tasks }));
     } catch (e) { console.error('local save failed', e); }
-    // Push to Firebase (debounced via state - React already batches, this fires once per change)
-    if (window.fbDb) {
-      window.fbDb.ref('history').set(history).catch((err) => {
-        console.error('Firebase write failed:', err);
-      });
+    // Push to Firebase only once the cloud copy has been read, and only real changes
+    if (window.fbDb && fbReady.current && !sameJSON(history, lastRemote.current)) {
+      lastRemote.current = history;
+      window.fbDb.ref('history').set(history).then(() => setSyncState('ok')).catch(fail);
     }
   }, [history, tasks, loading]);
 
@@ -420,6 +456,7 @@ function ChoreTracker() {
   };
   const updateCadence = (taskId, newCadence) => {
     setTasks((ts) => ts.map((t) => (t.id === taskId ? { ...t, cadence: newCadence } : t)));
+    if (window.fbDb) window.fbDb.ref('cadence/' + taskId).set(newCadence).catch(fail);
   };
 
   const addCustomChore = ({ label, group, cadence }) => {
@@ -548,7 +585,11 @@ function ChoreTracker() {
             A record of household chores · kept faithfully
           </p>
           <p className="mono text-[10px] mt-1 tracking-widest uppercase" style={{ color: 'var(--sub)', opacity: 0.6 }}>
-            v{VERSION} · {VERSION_DATE} · {typeof window !== 'undefined' && window.fbDb ? '☁ synced' : 'local only'}
+            v{VERSION} · {VERSION_DATE} ·{' '}
+            <span onClick={() => { if (syncState === 'error') alert('Cloud sync problem:\n\n' + syncError + '\n\nIf it says permission denied, the Firebase rules need updating (see HANDOFF.md).'); }}
+                  style={{ color: syncState === 'error' ? 'var(--over-fg)' : undefined, cursor: syncState === 'error' ? 'pointer' : undefined }}>
+              {{ ok: '☁ synced', connecting: '… connecting', offline: 'offline · saved on phone', error: '⚠ sync error · tap' }[syncState]}
+            </span>
           </p>
         </header>
 

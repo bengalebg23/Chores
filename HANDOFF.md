@@ -4,7 +4,7 @@ A family household-chores PWA. Single-file `index.html` served from GitHub Pages
 
 **Live app:** https://bengalebg23.github.io/Chores/
 **Repo:** https://github.com/bengalebg23/Chores
-**Current version:** v1.11 (2026-10-04)
+**Current version:** v1.12 (2026-10-31)
 **Branch:** `main` (no dev/staging split — push straight to live)
 
 ---
@@ -30,11 +30,13 @@ Companion files:
 - Firebase Realtime Database:
   - `/history` — task completion log, source of truth
   - `/customTasks` — user-added chores (custom additions, not defaults), synced across devices
+  - `/cadence/<taskId>` — how-often (days) for any chore, built-in or custom (v1.12)
+  - `/backups/daily/<date>` — one full history copy per day; `/backups/first-sync-<ms>` — a phone's own copy when it first syncs and differs from the cloud (v1.12)
 - Theme preference: `localStorage["house-ledger-theme"]` = `"dark"` or `"light"`.
 
 Tasks layering on load: `DEFAULT_TASKS` (hardcoded) + saved-local-custom (from localStorage) + Firebase customTasks, deduped by ID. This means new default groups can ship without wiping user-added customs.
 
-Last write wins.
+Sync rules (v1.12): nothing is written to Firebase until `/history` has been read once. On that first read the phone's history and the cloud's are merged (union of dates), so a phone with cleared data can no longer wipe the cloud. After that, last write wins. **v1.11 and earlier wrote the phone's copy on launch — that's how clearing site data on 2026-10-30 wiped the cloud history.**
 
 ### Firebase config
 
@@ -46,7 +48,9 @@ Rules: reads/writes open for `/history` and `/customTasks`, no auth. Family-scal
 {
   "rules": {
     "history":     { ".read": true, ".write": true },
-    "customTasks": { ".read": true, ".write": true }
+    "customTasks": { ".read": true, ".write": true },
+    "cadence":     { ".read": true, ".write": true },
+    "backups":     { ".read": true, ".write": true }
   }
 }
 ```
