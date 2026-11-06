@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="House Ledger" />
 <title>The House Ledger</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
 
 <!-- Inline favicon + icon (so no extra files needed) -->
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23f4ede0'/><text x='50%25' y='54%25' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='34' fill='%232a1f15'>HL</text></svg>" />
@@ -239,8 +241,8 @@ const GROUP_META = {
 };
 
 const STORAGE_KEY = 'house-ledger-v1';
-const VERSION = '1.12';
-const VERSION_DATE = '2026-10-31';
+const VERSION = '1.13';
+const VERSION_DATE = '2026-11-06';
 
 // v1.12 sync helpers. History is { taskId: [isoDate, ...] }; merging = union of dates.
 const mergeHistory = (a, b) => {

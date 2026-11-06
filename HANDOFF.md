@@ -4,7 +4,7 @@ A family household-chores PWA. Single-file `index.html` served from GitHub Pages
 
 **Live app:** https://bengalebg23.github.io/Chores/
 **Repo:** https://github.com/bengalebg23/Chores
-**Current version:** v1.12 (2026-10-31)
+**Current version:** v1.13 (2026-11-06)
 **Branch:** `main` (no dev/staging split — push straight to live)
 
 ---
@@ -108,6 +108,7 @@ The SW change is what forces installed PWAs to reload.
 ---
 
 ## Version history
+- **v1.13** (2026-11-06) — Added manifest.json and PNG icons so Android installs it as a real app; before, it could only make a Chrome shortcut.
 
 - **v1.0** — Initial release. Bed Change, Hoover, Dusting, Grooming, Misc groups. List + calendar views. localStorage only.
 - **v1.1** — Bathrooms group added. Version stamp in footer.
